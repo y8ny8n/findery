@@ -39,20 +39,24 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         window.minSize = NSSize(width: 600, height: 400)
         window.tabbingMode = .preferred
         window.tabbingIdentifier = "FinderyTab"
-        // 화면 중앙에 크게 배치
-        if let screen = NSScreen.main {
-            let screenFrame = screen.visibleFrame
-            let x = screenFrame.origin.x + (screenFrame.width - 1200) / 2
-            let y = screenFrame.origin.y + (screenFrame.height - 800) / 2
-            window.setFrame(NSRect(x: x, y: y, width: 1200, height: 800), display: true)
-        } else {
-            window.center()
-        }
 
         super.init(window: window)
         setupSplitView()
         setupMenuShortcuts()
         setupFileWatcher()
+
+        // super.init 이후에 크기 설정 (시스템 복원 무시)
+        if let screen = NSScreen.main {
+            let screenFrame = screen.visibleFrame
+            let w: CGFloat = min(1200, screenFrame.width * 0.85)
+            let h: CGFloat = min(800, screenFrame.height * 0.85)
+            let x = screenFrame.origin.x + (screenFrame.width - w) / 2
+            let y = screenFrame.origin.y + (screenFrame.height - h) / 2
+            window.setFrame(NSRect(x: x, y: y, width: w, height: h), display: true)
+        } else {
+            window.setContentSize(NSSize(width: 1200, height: 800))
+            window.center()
+        }
         setupNotifications()
         navigateTo(FileSystemController.homeDirectory)
     }
