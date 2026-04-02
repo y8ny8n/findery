@@ -265,6 +265,7 @@ final class FileListContainerViewController: NSViewController {
         tableView.allowsMultipleSelection = true
         tableView.usesAlternatingRowBackgroundColors = true
         tableView.style = .fullWidth
+        tableView.rowHeight = 28
         tableView.menu = NSMenu()
         tableView.menu?.delegate = self
         tableView.fileURLsProvider = { [weak self] in
