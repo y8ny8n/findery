@@ -15,6 +15,15 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
     private var currentURL: URL?
     private var clipboardURLs: [URL] = []
     private var clipboardIsCut = false
+    private var undoStack: [UndoableAction] = []
+
+    enum UndoableAction {
+        case copy(created: [URL])
+        case move(from: [(source: URL, dest: URL)])
+        case rename(original: URL, renamed: URL)
+        case trash(trashedURLs: [(original: URL, trashURL: URL)])
+        case newFolder(url: URL)
+    }
 
     // MARK: - Init
 
@@ -98,9 +107,11 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
 
         // Edit menu
         let editMenu = NSMenu(title: "Edit")
+        editMenu.addItem(item("실행 취소", action: #selector(undoAction), key: "z"))
+        editMenu.addItem(NSMenuItem.separator())
+        editMenu.addItem(item("잘라내기", action: #selector(cutAction), key: "x"))
         editMenu.addItem(item("복사", action: #selector(copyAction), key: "c"))
         editMenu.addItem(item("붙여넣기", action: #selector(pasteAction), key: "v"))
-        editMenu.addItem(item("이동 (잘라내기 붙여넣기)", action: #selector(moveAction), key: "v", modifiers: [.command, .option]))
         editMenu.addItem(NSMenuItem.separator())
 
         let renameItem = NSMenuItem(title: "이름 변경", action: #selector(renameAction), keyEquivalent: "")
@@ -279,7 +290,8 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
     @objc private func newFolderAction() {
         guard let url = currentURL else { return }
         do {
-            _ = try fileOperations.createNewFolder(in: url)
+            let folderURL = try fileOperations.createNewFolder(in: url)
+            undoStack.append(.newFolder(url: folderURL))
             refreshCurrentDirectory()
         } catch {
             showError(error)
@@ -287,6 +299,9 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
     }
 
     @objc private func renameAction() {
+        fileListContainerVC.onRenameComplete = { [weak self] original, renamed in
+            self?.undoStack.append(.rename(original: original, renamed: renamed))
+        }
         fileListContainerVC.startRenaming()
     }
 
@@ -294,7 +309,43 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         let urls = fileListContainerVC.selectedFileURLs
         guard !urls.isEmpty else { return }
         do {
-            try fileOperations.moveToTrash(urls: urls)
+            let trashedPairs = try fileOperations.moveToTrashWithUndo(urls: urls)
+            undoStack.append(.trash(trashedURLs: trashedPairs))
+            refreshCurrentDirectory()
+        } catch {
+            showError(error)
+        }
+    }
+
+    @objc private func undoAction() {
+        guard let action = undoStack.popLast() else {
+            NSSound.beep()
+            return
+        }
+
+        do {
+            switch action {
+            case .copy(let created):
+                for url in created {
+                    try FileManager.default.trashItem(at: url, resultingItemURL: nil)
+                }
+
+            case .move(let pairs):
+                for pair in pairs {
+                    try FileManager.default.moveItem(at: pair.dest, to: pair.source)
+                }
+
+            case .rename(let original, let renamed):
+                try FileManager.default.moveItem(at: renamed, to: original)
+
+            case .trash(let trashedURLs):
+                for pair in trashedURLs {
+                    try FileManager.default.moveItem(at: pair.trashURL, to: pair.original)
+                }
+
+            case .newFolder(let url):
+                try FileManager.default.trashItem(at: url, resultingItemURL: nil)
+            }
             refreshCurrentDirectory()
         } catch {
             showError(error)
@@ -323,11 +374,13 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         guard let destination = currentURL, !clipboardURLs.isEmpty else { return }
         do {
             if clipboardIsCut {
-                try fileOperations.moveFiles(clipboardURLs, to: destination)
+                let pairs = try fileOperations.moveFilesWithUndo(clipboardURLs, to: destination)
+                undoStack.append(.move(from: pairs))
                 clipboardURLs = []
                 clipboardIsCut = false
             } else {
-                try fileOperations.copyFiles(clipboardURLs, to: destination)
+                let created = try fileOperations.copyFilesWithUndo(clipboardURLs, to: destination)
+                undoStack.append(.copy(created: created))
             }
             refreshCurrentDirectory()
         } catch {
@@ -338,7 +391,8 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
     @objc private func moveAction() {
         guard let destination = currentURL, !clipboardURLs.isEmpty else { return }
         do {
-            try fileOperations.moveFiles(clipboardURLs, to: destination)
+            let pairs = try fileOperations.moveFilesWithUndo(clipboardURLs, to: destination)
+            undoStack.append(.move(from: pairs))
             clipboardURLs = []
             clipboardIsCut = false
             refreshCurrentDirectory()

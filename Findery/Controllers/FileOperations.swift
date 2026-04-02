@@ -52,6 +52,18 @@ final class FileOperations {
         }
     }
 
+    func moveToTrashWithUndo(urls: [URL]) throws -> [(original: URL, trashURL: URL)] {
+        var pairs: [(original: URL, trashURL: URL)] = []
+        for url in urls {
+            var trashURL: NSURL?
+            try FileManager.default.trashItem(at: url, resultingItemURL: &trashURL)
+            if let trashURL = trashURL as URL? {
+                pairs.append((original: url, trashURL: trashURL))
+            }
+        }
+        return pairs
+    }
+
     func openFile(_ url: URL) {
         NSWorkspace.shared.open(url)
     }
@@ -72,12 +84,34 @@ final class FileOperations {
         }
     }
 
+    func copyFilesWithUndo(_ sources: [URL], to destination: URL) throws -> [URL] {
+        var created: [URL] = []
+        for source in sources {
+            var destURL = destination.appendingPathComponent(source.lastPathComponent)
+            destURL = uniqueURL(destURL)
+            try FileManager.default.copyItem(at: source, to: destURL)
+            created.append(destURL)
+        }
+        return created
+    }
+
     func moveFiles(_ sources: [URL], to destination: URL) throws {
         for source in sources {
             var destURL = destination.appendingPathComponent(source.lastPathComponent)
             destURL = uniqueURL(destURL)
             try FileManager.default.moveItem(at: source, to: destURL)
         }
+    }
+
+    func moveFilesWithUndo(_ sources: [URL], to destination: URL) throws -> [(source: URL, dest: URL)] {
+        var pairs: [(source: URL, dest: URL)] = []
+        for source in sources {
+            var destURL = destination.appendingPathComponent(source.lastPathComponent)
+            destURL = uniqueURL(destURL)
+            try FileManager.default.moveItem(at: source, to: destURL)
+            pairs.append((source: source, dest: destURL))
+        }
+        return pairs
     }
 
     private func uniqueURL(_ url: URL) -> URL {

@@ -15,6 +15,7 @@ final class FileListContainerViewController: NSViewController {
 
     var onNavigate: ((URL) -> Void)?
     var contextMenuProvider: (([URL]) -> NSMenu)?
+    var onRenameComplete: ((URL, URL) -> Void)?
 
     enum SortKey: String {
         case name, size, date, kind
@@ -313,7 +314,8 @@ extension FileListContainerViewController: NSTextFieldDelegate {
         }
 
         do {
-            _ = try FileOperations().rename(at: node.url, to: newName)
+            let renamedURL = try FileOperations().rename(at: node.url, to: newName)
+            onRenameComplete?(node.url, renamedURL)
         } catch {
             textField.stringValue = node.name
             if let window = view.window {
