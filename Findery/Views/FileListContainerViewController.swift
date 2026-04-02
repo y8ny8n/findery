@@ -489,20 +489,24 @@ extension FileListContainerViewController {
 extension FileListContainerViewController: NSServicesMenuRequestor {
 
     override func validRequestor(forSendType sendType: NSPasteboard.PasteboardType?, returnType: NSPasteboard.PasteboardType?) -> Any? {
-        if sendType == .fileURL || sendType == .string {
-            if !selectedFileURLs.isEmpty {
-                return self
-            }
+        let validSend = sendType == nil || sendType == .fileURL || sendType == .string
+        let validReturn = returnType == nil
+        if validSend && validReturn && !selectedFileURLs.isEmpty {
+            return self
         }
         return super.validRequestor(forSendType: sendType, returnType: returnType)
     }
 
-    func writeSelection(to pboard: NSPasteboard, types: [NSPasteboard.PasteboardType]) -> Bool {
+    @objc func writeSelection(to pboard: NSPasteboard, types: [NSPasteboard.PasteboardType]) -> Bool {
         let urls = selectedFileURLs
         guard !urls.isEmpty else { return false }
         pboard.clearContents()
         pboard.writeObjects(urls as [NSURL])
         pboard.setString(urls.map(\.path).joined(separator: "\n"), forType: .string)
+
+        let filePaths = urls.map(\.path).joined(separator: "\n")
+        pboard.setString(filePaths, forType: .string)
+        pboard.setPropertyList(urls.map(\.absoluteString), forType: .fileURL)
         return true
     }
 }
