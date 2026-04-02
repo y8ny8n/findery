@@ -40,7 +40,12 @@ struct FileNode: Identifiable, Hashable {
         self.dateModified = resourceValues?.contentModificationDate ?? Date.distantPast
         self.kind = resourceValues?.localizedTypeDescription ?? "Unknown"
         self.fileExtension = url.pathExtension.lowercased()
-        self.isWritable = FileManager.default.isWritableFile(atPath: url.deletingLastPathComponent().path)
+        // 부모 디렉토리 쓰기 권한 + macOS 보호 폴더 체크
+        let parentWritable = FileManager.default.isWritableFile(atPath: url.deletingLastPathComponent().path)
+        let protectedHomeFolders: Set<String> = ["Desktop", "Documents", "Downloads", "Movies", "Music", "Pictures", "Public", "Library", "Applications"]
+        let isProtectedHomeChild = url.deletingLastPathComponent().path == FileSystemController.homeDirectory.path
+            && protectedHomeFolders.contains(url.lastPathComponent)
+        self.isWritable = parentWritable && !isProtectedHomeChild
     }
 
     var formattedSize: String {
