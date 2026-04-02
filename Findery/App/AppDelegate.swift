@@ -25,6 +25,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @IBAction func newWindow(_ sender: Any?) {
         let wc = createWindowController()
+        wc.window?.tabbingMode = .disallowed
         wc.window?.makeKeyAndOrderFront(nil)
     }
 
