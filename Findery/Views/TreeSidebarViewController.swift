@@ -138,7 +138,8 @@ extension TreeSidebarViewController: NSOutlineViewDelegate {
 
         cell.textField?.stringValue = node.name
         cell.imageView?.image = NSImage(systemSymbolName: "folder.fill", accessibilityDescription: "Folder")
-        cell.alphaValue = node.name.hasPrefix(".") ? 0.5 : 1.0
+        let isSpecial = node.name.hasPrefix(".") || node.isSymlink
+        cell.alphaValue = isSpecial ? 0.5 : 1.0
 
         return cell
     }
@@ -165,6 +166,7 @@ final class TreeNode {
 
     let url: URL
     let name: String
+    let isSymlink: Bool
     var children: [TreeNode] = []
     var isExpandable: Bool
     private var childrenLoaded = false
@@ -172,6 +174,7 @@ final class TreeNode {
     init(url: URL) {
         self.url = url
         self.name = url.lastPathComponent
+        self.isSymlink = (try? url.resourceValues(forKeys: [.isSymbolicLinkKey]))?.isSymbolicLink ?? false
 
         let options: FileManager.DirectoryEnumerationOptions = TreeNode.showHiddenFiles ? [] : [.skipsHiddenFiles]
         let hasSubdirectories: Bool

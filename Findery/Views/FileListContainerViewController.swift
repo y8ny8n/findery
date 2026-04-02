@@ -379,9 +379,10 @@ extension FileListContainerViewController: NSTableViewDelegate {
 
         let isCut = cutURLs.contains(node.url)
         let isHidden = node.name.hasPrefix(".")
+        let isSymlink = node.isSymlink
         if isCut {
             cell.alphaValue = 0.4
-        } else if isHidden {
+        } else if isHidden || isSymlink {
             cell.alphaValue = 0.5
         } else {
             cell.alphaValue = 1.0
