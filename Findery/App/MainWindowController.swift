@@ -203,6 +203,18 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         let viewMenuItem = NSMenuItem(title: "View", action: nil, keyEquivalent: "")
         viewMenuItem.submenu = viewMenu
         mainMenu.addItem(viewMenuItem)
+
+        // Window menu (⌘1~⌘9 탭 전환)
+        let windowMenu = NSMenu(title: "Window")
+        for i in 1...9 {
+            let tabItem = NSMenuItem(title: "탭 \(i)", action: #selector(switchToTab(_:)), keyEquivalent: "\(i)")
+            tabItem.tag = i
+            windowMenu.addItem(tabItem)
+        }
+        let windowMenuItem = NSMenuItem(title: "Window", action: nil, keyEquivalent: "")
+        windowMenuItem.submenu = windowMenu
+        mainMenu.addItem(windowMenuItem)
+        NSApp.windowsMenu = windowMenu
     }
 
     private func setupNotifications() {
@@ -694,6 +706,18 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
     @objc private func contextRemoveFavorite(_ sender: NSMenuItem) {
         guard let url = sender.representedObject as? URL else { return }
         FavoritesManager.shared.remove(url: url)
+    }
+
+    @objc private func switchToTab(_ sender: NSMenuItem) {
+        guard let window = self.window,
+              let tabGroup = window.tabGroup else { return }
+        let index = sender.tag - 1
+        let windows = tabGroup.windows
+        guard index >= 0, index < windows.count else {
+            NSSound.beep()
+            return
+        }
+        windows[index].makeKeyAndOrderFront(nil)
     }
 
     @objc private func focusSearchAction() {
