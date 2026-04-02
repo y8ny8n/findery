@@ -1,6 +1,21 @@
 import AppKit
 import QuickLookUI
 
+// MARK: - Rounded Row View (Finder-style)
+
+private final class RoundedRowView: NSTableRowView {
+    override func drawSelection(in dirtyRect: NSRect) {
+        guard isSelected else { return }
+        let inset = NSRect(x: bounds.minX + 4, y: bounds.minY + 1,
+                           width: bounds.width - 8, height: bounds.height - 2)
+        let path = NSBezierPath(roundedRect: inset, xRadius: 6, yRadius: 6)
+        NSColor.controlAccentColor.withAlphaComponent(0.2).setFill()
+        path.fill()
+    }
+
+    override var interiorBackgroundStyle: NSView.BackgroundStyle { .normal }
+}
+
 // MARK: - Services-aware TableView
 
 private final class ServicesTableView: NSTableView {
@@ -524,6 +539,16 @@ extension FileListContainerViewController: NSTableViewDataSource {
 
 // MARK: - NSTableViewDelegate
 extension FileListContainerViewController: NSTableViewDelegate {
+
+    func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
+        let id = NSUserInterfaceItemIdentifier("RoundedRow")
+        if let existing = tableView.makeView(withIdentifier: id, owner: nil) as? RoundedRowView {
+            return existing
+        }
+        let rowView = RoundedRowView()
+        rowView.identifier = id
+        return rowView
+    }
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         guard row < files.count, let columnID = tableColumn?.identifier.rawValue else { return nil }
         let node = files[row]
