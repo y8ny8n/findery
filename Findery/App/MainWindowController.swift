@@ -144,7 +144,7 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
 
         let renameItem = NSMenuItem(title: "이름 변경", action: #selector(renameAction), keyEquivalent: "")
         renameItem.keyEquivalent = String(Character(UnicodeScalar(NSF2FunctionKey)!))
-        renameItem.keyEquivalentModifierMask = []
+        renameItem.keyEquivalentModifierMask = [.function]
         renameItem.target = self
         editMenu.addItem(renameItem)
 
