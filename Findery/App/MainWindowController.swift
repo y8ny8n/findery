@@ -198,7 +198,6 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
     @objc private func handleToggleHidden(_ notification: Notification) {
         guard let show = notification.object as? Bool else { return }
         fileSystemController.showHiddenFiles = show
-        TreeNode.showHiddenFiles = show
         treeSidebarVC.reloadTree()
         refreshCurrentDirectory()
     }

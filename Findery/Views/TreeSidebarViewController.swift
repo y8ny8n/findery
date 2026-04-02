@@ -11,13 +11,14 @@ final class TreeSidebarViewController: NSViewController {
 
     private let outlineView = NSOutlineView()
     private let scrollView = NSScrollView()
-    private var rootNodes: [TreeNode] = []
+
+    private var sections: [SidebarSection] = []
 
     override func loadView() {
         view = NSView()
         setupScrollView()
         setupOutlineView()
-        loadRootNodes()
+        buildSections()
     }
 
     private func setupScrollView() {
@@ -37,42 +38,70 @@ final class TreeSidebarViewController: NSViewController {
 
     private func setupOutlineView() {
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("NameColumn"))
-        column.title = "Folders"
+        column.title = ""
         outlineView.addTableColumn(column)
         outlineView.outlineTableColumn = column
         outlineView.headerView = nil
         outlineView.delegate = self
         outlineView.dataSource = self
-        outlineView.rowHeight = 24
-        outlineView.indentationPerLevel = 16
+        outlineView.rowHeight = 26
+        outlineView.indentationPerLevel = 14
         outlineView.style = .sourceList
+        outlineView.floatsGroupRows = true
     }
 
-    private func loadRootNodes() {
-        let homeURL = FileSystemController.homeDirectory
-        let rootNode = TreeNode(url: homeURL)
-        rootNode.loadChildren()
-        rootNodes = [rootNode]
+    private func buildSections() {
+        let home = FileSystemController.homeDirectory
+
+        // 즐겨찾기
+        let favorites = SidebarSection(title: "즐겨찾기", items: [
+            SidebarItem(name: "데스크톱", url: home.appendingPathComponent("Desktop"), icon: "desktopcomputer"),
+            SidebarItem(name: "다운로드", url: home.appendingPathComponent("Downloads"), icon: "arrow.down.circle.fill"),
+            SidebarItem(name: "문서", url: home.appendingPathComponent("Documents"), icon: "doc.fill"),
+            SidebarItem(name: "홈", url: home, icon: "house.fill"),
+        ])
+
+        // 위치
+        let volumes = (try? FileManager.default.contentsOfDirectory(
+            at: URL(fileURLWithPath: "/Volumes"),
+            includingPropertiesForKeys: [.isVolumeKey],
+            options: [.skipsHiddenFiles]
+        )) ?? []
+
+        var locationItems = volumes.map { vol in
+            SidebarItem(name: vol.lastPathComponent, url: vol, icon: "externaldrive.fill")
+        }
+        // 루트 추가
+        locationItems.insert(SidebarItem(name: "Macintosh HD", url: URL(fileURLWithPath: "/"), icon: "internaldrive.fill"), at: 0)
+
+        let locations = SidebarSection(title: "위치", items: locationItems)
+
+        sections = [favorites, locations]
         outlineView.reloadData()
-        outlineView.expandItem(rootNode)
+
+        // 섹션 기본 펼치기
+        for section in sections {
+            outlineView.expandItem(section)
+        }
     }
 
     func reloadTree() {
-        rootNodes = []
-        loadRootNodes()
+        buildSections()
     }
 
     func selectDirectory(_ url: URL) {
         suppressSelectionCallback = true
         defer { suppressSelectionCallback = false }
         for row in 0..<outlineView.numberOfRows {
-            if let node = outlineView.item(atRow: row) as? TreeNode,
-               node.url == url {
+            if let item = outlineView.item(atRow: row) as? SidebarItem,
+               item.url.standardizedFileURL == url.standardizedFileURL {
                 outlineView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
                 outlineView.scrollRowToVisible(row)
                 return
             }
         }
+        // 일치하는 항목 없으면 선택 해제
+        outlineView.deselectAll(nil)
     }
 }
 
@@ -80,141 +109,132 @@ final class TreeSidebarViewController: NSViewController {
 extension TreeSidebarViewController: NSOutlineViewDataSource {
 
     func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
-        guard let node = item as? TreeNode else {
-            return rootNodes.count
-        }
-        return node.children.count
+        if item == nil { return sections.count }
+        if let section = item as? SidebarSection { return section.items.count }
+        return 0
     }
 
     func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
-        guard let node = item as? TreeNode else {
-            return rootNodes[index]
-        }
-        return node.children[index]
+        if item == nil { return sections[index] }
+        if let section = item as? SidebarSection { return section.items[index] }
+        return NSNull()
     }
 
     func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
-        guard let node = item as? TreeNode else { return false }
-        return node.isExpandable
+        return item is SidebarSection
     }
 }
 
 // MARK: - NSOutlineViewDelegate
 extension TreeSidebarViewController: NSOutlineViewDelegate {
 
+    func outlineView(_ outlineView: NSOutlineView, isGroupItem item: Any) -> Bool {
+        return item is SidebarSection
+    }
+
+    func outlineView(_ outlineView: NSOutlineView, shouldSelectItem item: Any) -> Bool {
+        return item is SidebarItem
+    }
+
     func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
-        guard let node = item as? TreeNode else { return nil }
-
-        let cellIdentifier = NSUserInterfaceItemIdentifier("FolderCell")
-        let cell: NSTableCellView
-
-        if let existing = outlineView.makeView(withIdentifier: cellIdentifier, owner: nil) as? NSTableCellView {
-            cell = existing
-        } else {
-            cell = NSTableCellView()
-            cell.identifier = cellIdentifier
-
-            let imageView = NSImageView()
-            imageView.translatesAutoresizingMaskIntoConstraints = false
-            cell.addSubview(imageView)
-            cell.imageView = imageView
-
-            let textField = NSTextField(labelWithString: "")
-            textField.translatesAutoresizingMaskIntoConstraints = false
-            textField.lineBreakMode = .byTruncatingTail
-            cell.addSubview(textField)
-            cell.textField = textField
-
-            NSLayoutConstraint.activate([
-                imageView.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 2),
-                imageView.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
-                imageView.widthAnchor.constraint(equalToConstant: 16),
-                imageView.heightAnchor.constraint(equalToConstant: 16),
-                textField.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 4),
-                textField.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -2),
-                textField.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
-            ])
+        // 섹션 헤더
+        if let section = item as? SidebarSection {
+            let cellID = NSUserInterfaceItemIdentifier("HeaderCell")
+            let cell: NSTableCellView
+            if let existing = outlineView.makeView(withIdentifier: cellID, owner: nil) as? NSTableCellView {
+                cell = existing
+            } else {
+                cell = NSTableCellView()
+                cell.identifier = cellID
+                let textField = NSTextField(labelWithString: "")
+                textField.translatesAutoresizingMaskIntoConstraints = false
+                textField.font = NSFont.systemFont(ofSize: 11, weight: .bold)
+                textField.textColor = .secondaryLabelColor
+                cell.addSubview(textField)
+                cell.textField = textField
+                NSLayoutConstraint.activate([
+                    textField.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 2),
+                    textField.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+                ])
+            }
+            cell.textField?.stringValue = section.title
+            return cell
         }
 
-        cell.textField?.stringValue = node.name
-        cell.imageView?.image = NSImage(systemSymbolName: "folder.fill", accessibilityDescription: "Folder")
-        let isSpecial = node.name.hasPrefix(".") || node.isSymlink
-        cell.alphaValue = isSpecial ? 0.5 : 1.0
+        // 일반 항목
+        if let item = item as? SidebarItem {
+            let cellID = NSUserInterfaceItemIdentifier("ItemCell")
+            let cell: NSTableCellView
+            if let existing = outlineView.makeView(withIdentifier: cellID, owner: nil) as? NSTableCellView {
+                cell = existing
+            } else {
+                cell = NSTableCellView()
+                cell.identifier = cellID
 
-        return cell
+                let imageView = NSImageView()
+                imageView.translatesAutoresizingMaskIntoConstraints = false
+                cell.addSubview(imageView)
+                cell.imageView = imageView
+
+                let textField = NSTextField(labelWithString: "")
+                textField.translatesAutoresizingMaskIntoConstraints = false
+                textField.lineBreakMode = .byTruncatingTail
+                textField.font = NSFont.systemFont(ofSize: 13)
+                cell.addSubview(textField)
+                cell.textField = textField
+
+                NSLayoutConstraint.activate([
+                    imageView.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 2),
+                    imageView.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+                    imageView.widthAnchor.constraint(equalToConstant: 18),
+                    imageView.heightAnchor.constraint(equalToConstant: 18),
+                    textField.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 6),
+                    textField.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -4),
+                    textField.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+                ])
+            }
+
+            cell.textField?.stringValue = item.name
+            let img = NSImage(systemSymbolName: item.icon, accessibilityDescription: item.name)
+            let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
+            cell.imageView?.image = img?.withSymbolConfiguration(config)
+            cell.imageView?.contentTintColor = .controlAccentColor
+            return cell
+        }
+
+        return nil
     }
 
     func outlineViewSelectionDidChange(_ notification: Notification) {
         guard !suppressSelectionCallback,
               let selectedRow = outlineView.selectedRowIndexes.first,
-              let node = outlineView.item(atRow: selectedRow) as? TreeNode else {
+              let item = outlineView.item(atRow: selectedRow) as? SidebarItem else {
             return
         }
-        delegate?.treeSidebar(self, didSelectDirectory: node.url)
-    }
-
-    func outlineViewItemWillExpand(_ notification: Notification) {
-        guard let node = notification.userInfo?["NSObject"] as? TreeNode else { return }
-        node.loadChildren()
-        outlineView.reloadItem(node, reloadChildren: true)
+        delegate?.treeSidebar(self, didSelectDirectory: item.url)
     }
 }
 
-// MARK: - TreeNode
-final class TreeNode {
-    static var showHiddenFiles = false
+// MARK: - Data Models
 
-    let url: URL
+final class SidebarSection {
+    let title: String
+    let items: [SidebarItem]
+
+    init(title: String, items: [SidebarItem]) {
+        self.title = title
+        self.items = items
+    }
+}
+
+final class SidebarItem {
     let name: String
-    let isSymlink: Bool
-    var children: [TreeNode] = []
-    var isExpandable: Bool
-    private var childrenLoaded = false
+    let url: URL
+    let icon: String
 
-    init(url: URL) {
+    init(name: String, url: URL, icon: String) {
+        self.name = name
         self.url = url
-        self.name = url.lastPathComponent
-        self.isSymlink = (try? url.resourceValues(forKeys: [.isSymbolicLinkKey]))?.isSymbolicLink ?? false
-
-        let options: FileManager.DirectoryEnumerationOptions = TreeNode.showHiddenFiles ? [] : [.skipsHiddenFiles]
-        let hasSubdirectories: Bool
-        if let contents = try? FileManager.default.contentsOfDirectory(
-            at: url,
-            includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey],
-            options: options
-        ) {
-            hasSubdirectories = contents.contains { TreeNode.isDirectoryURL($0) }
-        } else {
-            hasSubdirectories = false
-        }
-        self.isExpandable = hasSubdirectories
-    }
-
-    private static func isDirectoryURL(_ url: URL) -> Bool {
-        let rv = try? url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
-        if rv?.isDirectory == true { return true }
-        if rv?.isSymbolicLink == true {
-            var isDir: ObjCBool = false
-            FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
-            return isDir.boolValue
-        }
-        return false
-    }
-
-    func loadChildren() {
-        guard !childrenLoaded else { return }
-        childrenLoaded = true
-
-        let options: FileManager.DirectoryEnumerationOptions = TreeNode.showHiddenFiles ? [] : [.skipsHiddenFiles]
-        guard let contents = try? FileManager.default.contentsOfDirectory(
-            at: url,
-            includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey],
-            options: options
-        ) else { return }
-
-        children = contents
-            .filter { TreeNode.isDirectoryURL($0) }
-            .map { TreeNode(url: $0) }
-            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        self.icon = icon
     }
 }
