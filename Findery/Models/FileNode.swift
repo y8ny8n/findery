@@ -11,6 +11,7 @@ struct FileNode: Identifiable, Hashable {
     let dateModified: Date
     let kind: String
     let fileExtension: String
+    let isWritable: Bool
 
     init(url: URL) {
         self.id = url
@@ -39,6 +40,7 @@ struct FileNode: Identifiable, Hashable {
         self.dateModified = resourceValues?.contentModificationDate ?? Date.distantPast
         self.kind = resourceValues?.localizedTypeDescription ?? "Unknown"
         self.fileExtension = url.pathExtension.lowercased()
+        self.isWritable = FileManager.default.isWritableFile(atPath: url.deletingLastPathComponent().path)
     }
 
     var formattedSize: String {

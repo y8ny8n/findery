@@ -349,6 +349,20 @@ final class FileListContainerViewController: NSViewController {
         guard let row = tableView.selectedRowIndexes.first,
               row < files.count else { return }
         let node = files[row]
+
+        guard node.isWritable else {
+            NSSound.beep()
+            if let window = view.window {
+                let alert = NSAlert()
+                alert.messageText = "수정할 수 없는 항목"
+                alert.informativeText = "'\(node.name)'은(는) 수정 권한이 없습니다."
+                alert.alertStyle = .informational
+                alert.addButton(withTitle: "확인")
+                alert.beginSheetModal(for: window)
+            }
+            return
+        }
+
         renamingURL = node.url
 
         let nameColIndex = tableView.column(withIdentifier: NSUserInterfaceItemIdentifier("Name"))
@@ -537,7 +551,11 @@ extension FileListContainerViewController: NSTableViewDelegate {
 
         switch columnID {
         case "Name":
-            cell.textField?.stringValue = node.name
+            if node.isWritable {
+                cell.textField?.stringValue = node.name
+            } else {
+                cell.textField?.stringValue = "🔒 " + node.name
+            }
             cell.imageView?.image = iconCache?.icon(for: node)
         case "Size":
             cell.textField?.stringValue = node.formattedSize

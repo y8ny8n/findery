@@ -302,9 +302,15 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
             menu.addItem(NSMenuItem.separator())
         }
 
+        // 쓰기 가능 여부 확인
+        let allWritable = urls.allSatisfy { url in
+            FileManager.default.isWritableFile(atPath: url.deletingLastPathComponent().path)
+        }
+
         menu.addItem(withTitle: "복사", action: #selector(copyAction), keyEquivalent: "").target = self
-        let cutItem = NSMenuItem(title: "잘라내기", action: #selector(cutAction), keyEquivalent: "")
+        let cutItem = NSMenuItem(title: "잘라내기", action: allWritable ? #selector(cutAction) : nil, keyEquivalent: "")
         cutItem.target = self
+        cutItem.isEnabled = allWritable
         menu.addItem(cutItem)
 
         if !clipboardURLs.isEmpty {
@@ -313,11 +319,15 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         }
 
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(withTitle: "이름 변경", action: #selector(renameAction), keyEquivalent: "").target = self
+        let renameItem = NSMenuItem(title: "이름 변경", action: allWritable ? #selector(renameAction) : nil, keyEquivalent: "")
+        renameItem.target = self
+        renameItem.isEnabled = allWritable
+        menu.addItem(renameItem)
         menu.addItem(NSMenuItem.separator())
 
-        let trashItem = NSMenuItem(title: "휴지통으로 이동", action: #selector(moveToTrashAction), keyEquivalent: "")
+        let trashItem = NSMenuItem(title: "휴지통으로 이동", action: allWritable ? #selector(moveToTrashAction) : nil, keyEquivalent: "")
         trashItem.target = self
+        trashItem.isEnabled = allWritable
         menu.addItem(trashItem)
 
         menu.addItem(NSMenuItem.separator())
