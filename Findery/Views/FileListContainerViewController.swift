@@ -592,6 +592,9 @@ extension FileListContainerViewController: QLPreviewPanelDataSource, QLPreviewPa
 extension FileListContainerViewController: NSTextFieldDelegate {
 
     func controlTextDidEndEditing(_ obj: Notification) {
+        // 검색바 이벤트는 무시
+        if let field = obj.object as? NSSearchField { return }
+
         guard let textField = obj.object as? NSTextField,
               let row = renamingRow,
               row < files.count else {
