@@ -35,14 +35,19 @@ final class AddressBarView: NSView, NSTextFieldDelegate {
         ])
 
         popover.contentViewController = suggestionsVC
-        popover.behavior = .transient
+        popover.behavior = .semitransient
         popover.animates = false
 
         suggestionsVC.onSelect = { [weak self] path in
-            self?.textField.stringValue = path
-            self?.popover.performClose(nil)
-            self?.textField.currentEditor()?.moveToEndOfLine(nil)
-            self?.updateSuggestions()
+            guard let self else { return }
+            self.textField.stringValue = path
+            self.popover.performClose(nil)
+            // 포커스를 텍스트 필드로 되돌림
+            DispatchQueue.main.async {
+                self.window?.makeFirstResponder(self.textField)
+                self.textField.currentEditor()?.moveToEndOfLine(nil)
+                self.updateSuggestions()
+            }
         }
     }
 
@@ -355,7 +360,6 @@ final class SuggestionsViewController: NSViewController, NSTableViewDataSource, 
     }
 
     func tableViewSelectionDidChange(_ notification: Notification) {
-        guard let selected = selectedSuggestion else { return }
-        onSelect?(selected)
+        // 선택만 하이라이트, 확정은 더블클릭이나 Tab에서
     }
 }

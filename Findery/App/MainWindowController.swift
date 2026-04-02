@@ -108,13 +108,14 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         fileMenuItem.submenu = fileMenu
         mainMenu.addItem(fileMenuItem)
 
-        // Edit menu
+        // Edit menu — standard selectors (no target) so text fields handle ⌘C/⌘V/⌘A
         let editMenu = NSMenu(title: "Edit")
         editMenu.addItem(item("실행 취소", action: #selector(undoAction), key: "z"))
         editMenu.addItem(NSMenuItem.separator())
-        editMenu.addItem(item("잘라내기", action: #selector(cutAction), key: "x"))
-        editMenu.addItem(item("복사", action: #selector(copyAction), key: "c"))
-        editMenu.addItem(item("붙여넣기", action: #selector(pasteAction), key: "v"))
+        editMenu.addItem(NSMenuItem(title: "잘라내기", action: #selector(NSText.cut(_:)), keyEquivalent: "x"))
+        editMenu.addItem(NSMenuItem(title: "복사", action: #selector(NSText.copy(_:)), keyEquivalent: "c"))
+        editMenu.addItem(NSMenuItem(title: "붙여넣기", action: #selector(NSText.paste(_:)), keyEquivalent: "v"))
+        editMenu.addItem(NSMenuItem(title: "전체 선택", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a"))
         editMenu.addItem(NSMenuItem.separator())
 
         let renameItem = NSMenuItem(title: "이름 변경", action: #selector(renameAction), keyEquivalent: "")
@@ -159,9 +160,33 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
     }
 
     private func setupNotifications() {
-        NotificationCenter.default.addObserver(self, selector: #selector(goBackAction), name: .finderyGoBack, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(goForwardAction), name: .finderyGoForward, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(goUpAction), name: .finderyGoUp, object: nil)
+        let nc = NotificationCenter.default
+        nc.addObserver(self, selector: #selector(goBackAction), name: .finderyGoBack, object: nil)
+        nc.addObserver(self, selector: #selector(goForwardAction), name: .finderyGoForward, object: nil)
+        nc.addObserver(self, selector: #selector(goUpAction), name: .finderyGoUp, object: nil)
+        nc.addObserver(self, selector: #selector(handleFileCopy(_:)), name: .finderyCopy, object: nil)
+        nc.addObserver(self, selector: #selector(handleFileCut(_:)), name: .finderyCut, object: nil)
+        nc.addObserver(self, selector: #selector(handleFilePaste), name: .finderyPaste, object: nil)
+    }
+
+    @objc private func handleFileCopy(_ notification: Notification) {
+        guard let urls = notification.object as? [URL], !urls.isEmpty else { return }
+        clipboardURLs = urls
+        clipboardIsCut = false
+        fileOperations.copyToClipboard(urls: urls)
+    }
+
+    @objc private func handleFileCut(_ notification: Notification) {
+        guard let urls = notification.object as? [URL], !urls.isEmpty else { return }
+        clipboardURLs = urls
+        clipboardIsCut = true
+        clipboardSourceDir = currentURL
+        fileOperations.copyToClipboard(urls: urls)
+        fileListContainerVC.setCutURLs(Set(urls))
+    }
+
+    @objc private func handleFilePaste() {
+        pasteAction()
     }
 
     private func setupFileWatcher() {

@@ -400,6 +400,26 @@ extension FileListContainerViewController: NSTextFieldDelegate {
     }
 }
 
+// MARK: - File Copy/Cut/Paste (standard selectors from Edit menu)
+extension FileListContainerViewController {
+
+    @objc func copy(_ sender: Any?) {
+        let urls = selectedFileURLs
+        guard !urls.isEmpty else { return }
+        NotificationCenter.default.post(name: .finderyCopy, object: urls)
+    }
+
+    @objc func cut(_ sender: Any?) {
+        let urls = selectedFileURLs
+        guard !urls.isEmpty else { return }
+        NotificationCenter.default.post(name: .finderyCut, object: urls)
+    }
+
+    @objc func paste(_ sender: Any?) {
+        NotificationCenter.default.post(name: .finderyPaste, object: nil)
+    }
+}
+
 // MARK: - Context Menu (NSMenuDelegate)
 extension FileListContainerViewController: NSMenuDelegate {
 
