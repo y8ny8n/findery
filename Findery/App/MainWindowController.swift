@@ -118,6 +118,10 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         // File menu
         let fileMenu = NSMenu(title: "File")
         fileMenu.addItem(item("새 폴더", action: #selector(newFolderAction), key: "n", modifiers: [.command, .shift]))
+        let compressMenuItem = NSMenuItem(title: "압축하기", action: #selector(compressSelectedAction), keyEquivalent: "c")
+        compressMenuItem.keyEquivalentModifierMask = [.control, .shift]
+        compressMenuItem.target = self
+        fileMenu.addItem(compressMenuItem)
         fileMenu.addItem(NSMenuItem.separator())
         fileMenu.addItem(withTitle: "닫기", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
         let fileMenuItem = NSMenuItem(title: "File", action: nil, keyEquivalent: "")
@@ -569,9 +573,21 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         NSWorkspace.shared.open(fileURLs, withApplicationAt: appURL, configuration: NSWorkspace.OpenConfiguration())
     }
 
+    @objc private func compressSelectedAction() {
+        let urls = fileListContainerVC.selectedFileURLs
+        guard !urls.isEmpty else {
+            NSSound.beep()
+            return
+        }
+        compressFiles(urls)
+    }
+
     @objc private func contextCompress(_ sender: NSMenuItem) {
         guard let urls = sender.representedObject as? [URL], !urls.isEmpty else { return }
+        compressFiles(urls)
+    }
 
+    private func compressFiles(_ urls: [URL]) {
         // Keka가 설치되어 있으면 Keka로 압축
         if let kekaURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.aone.keka") {
             NSWorkspace.shared.open(urls, withApplicationAt: kekaURL, configuration: NSWorkspace.OpenConfiguration())
@@ -588,7 +604,6 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         }
         var zipURL = destination.appendingPathComponent(zipName)
 
-        // 중복 방지
         var counter = 2
         while FileManager.default.fileExists(atPath: zipURL.path) {
             let base = zipURL.deletingPathExtension().lastPathComponent
