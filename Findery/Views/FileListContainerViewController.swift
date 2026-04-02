@@ -103,6 +103,45 @@ final class FileListContainerViewController: NSViewController {
         addressBar.setPath(url)
     }
 
+    func focusAddressBar() {
+        addressBar.focus()
+    }
+
+    var selectedFileURLs: [URL] {
+        tableView.selectedRowIndexes.compactMap { row in
+            guard row < files.count else { return nil }
+            return files[row].url
+        }
+    }
+
+    func startRenaming() {
+        guard let row = tableView.selectedRowIndexes.first,
+              row < files.count else { return }
+        let node = files[row]
+        let alert = NSAlert()
+        alert.messageText = "이름 변경"
+        alert.informativeText = "새 이름을 입력하세요:"
+        alert.addButton(withTitle: "변경")
+        alert.addButton(withTitle: "취소")
+
+        let input = NSTextField(frame: NSRect(x: 0, y: 0, width: 300, height: 24))
+        input.stringValue = node.name
+        alert.accessoryView = input
+
+        guard let window = view.window else { return }
+        alert.beginSheetModal(for: window) { response in
+            guard response == .alertFirstButtonReturn else { return }
+            let newName = input.stringValue.trimmingCharacters(in: .whitespaces)
+            guard !newName.isEmpty, newName != node.name else { return }
+            do {
+                _ = try FileOperations().rename(at: node.url, to: newName)
+            } catch {
+                let errorAlert = NSAlert(error: error)
+                errorAlert.beginSheetModal(for: window)
+            }
+        }
+    }
+
     @objc private func doubleClickRow() {
         let row = tableView.clickedRow
         guard row >= 0, row < files.count else { return }

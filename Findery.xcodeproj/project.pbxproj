@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0C9DB1A8C28BE63878271DBD /* AddressBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CBD3BF7729AC637DA70746D /* AddressBarView.swift */; };
+		17D79DAFBE9D1DE2E975DE63 /* FileWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF1B3726386EA32329B1EB97 /* FileWatcher.swift */; };
 		1E661E96D956440CF4D2A998 /* NavigationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51AC1C88AAFF42E3424171BB /* NavigationController.swift */; };
 		2168FD65BD5ED16FAC57B056 /* TreeSidebarViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4076AB78647F409B0A2D14E6 /* TreeSidebarViewController.swift */; };
 		3B5F19BFEA9225F3B3ACD9F2 /* FileOperations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CF2CD86BF22845AE7FBE610 /* FileOperations.swift */; };
@@ -51,6 +52,7 @@
 		BBDAC1860A7DBC137B3DFDB6 /* Findery.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Findery.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD7CB218C6E73826EAC1D4D7 /* FileNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileNode.swift; sourceTree = "<group>"; };
 		CCE453AB1E585F625C2BD673 /* FileSystemControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSystemControllerTests.swift; sourceTree = "<group>"; };
+		DF1B3726386EA32329B1EB97 /* FileWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileWatcher.swift; sourceTree = "<group>"; };
 		F70D69E78679884C640DF49E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -89,6 +91,7 @@
 			children = (
 				3CF2CD86BF22845AE7FBE610 /* FileOperations.swift */,
 				29CAC095B2ACF1F04141527B /* FileSystemController.swift */,
+				DF1B3726386EA32329B1EB97 /* FileWatcher.swift */,
 				083CE45EFAFA28F667212C0E /* IconCache.swift */,
 				51AC1C88AAFF42E3424171BB /* NavigationController.swift */,
 			);
@@ -232,6 +235,7 @@
 				AA94AB19074A642AF4848931 /* FileNode.swift in Sources */,
 				3B5F19BFEA9225F3B3ACD9F2 /* FileOperations.swift in Sources */,
 				C779FE79F1DDFA8E25B62379 /* FileSystemController.swift in Sources */,
+				17D79DAFBE9D1DE2E975DE63 /* FileWatcher.swift in Sources */,
 				CD12F4DF6EECA11475583510 /* IconCache.swift in Sources */,
 				9361F887A384BECBF9438930 /* MainWindowController.swift in Sources */,
 				1E661E96D956440CF4D2A998 /* NavigationController.swift in Sources */,
