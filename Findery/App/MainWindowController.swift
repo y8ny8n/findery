@@ -71,10 +71,17 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
     private func setupMenuShortcuts() {
         guard let mainMenu = NSApp.mainMenu else { return }
 
+        // Helper to create menu items with self as target
+        func item(_ title: String, action: Selector, key: String, modifiers: NSEvent.ModifierFlags = .command) -> NSMenuItem {
+            let mi = NSMenuItem(title: title, action: action, keyEquivalent: key)
+            mi.keyEquivalentModifierMask = modifiers
+            mi.target = self
+            return mi
+        }
+
         // File menu
         let fileMenu = NSMenu(title: "File")
-        fileMenu.addItem(withTitle: "새 폴더", action: #selector(newFolderAction), keyEquivalent: "N")
-            .keyEquivalentModifierMask = [.command, .shift]
+        fileMenu.addItem(item("새 폴더", action: #selector(newFolderAction), key: "N", modifiers: [.command, .shift]))
         fileMenu.addItem(NSMenuItem.separator())
         fileMenu.addItem(withTitle: "닫기", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
 
@@ -84,18 +91,16 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
 
         // Go menu
         let goMenu = NSMenu(title: "Go")
-        goMenu.addItem(withTitle: "뒤로", action: #selector(goBackAction), keyEquivalent: "[")
-            .keyEquivalentModifierMask = .command
-        goMenu.addItem(withTitle: "앞으로", action: #selector(goForwardAction), keyEquivalent: "]")
-            .keyEquivalentModifierMask = .command
+        goMenu.addItem(item("뒤로", action: #selector(goBackAction), key: "["))
+        goMenu.addItem(item("앞으로", action: #selector(goForwardAction), key: "]"))
 
         let goUpItem = NSMenuItem(title: "상위 폴더", action: #selector(goUpAction), keyEquivalent: String(Character(UnicodeScalar(NSUpArrowFunctionKey)!)))
         goUpItem.keyEquivalentModifierMask = .command
+        goUpItem.target = self
         goMenu.addItem(goUpItem)
 
         goMenu.addItem(NSMenuItem.separator())
-        goMenu.addItem(withTitle: "주소창으로 이동", action: #selector(focusAddressBar), keyEquivalent: "l")
-            .keyEquivalentModifierMask = .command
+        goMenu.addItem(item("주소창으로 이동", action: #selector(focusAddressBar), key: "l"))
 
         let goMenuItem = NSMenuItem(title: "Go", action: nil, keyEquivalent: "")
         goMenuItem.submenu = goMenu
@@ -106,11 +111,13 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         let renameItem = NSMenuItem(title: "이름 변경", action: #selector(renameAction), keyEquivalent: "")
         renameItem.keyEquivalent = String(Character(UnicodeScalar(NSF2FunctionKey)!))
         renameItem.keyEquivalentModifierMask = []
+        renameItem.target = self
         editMenu.addItem(renameItem)
 
         editMenu.addItem(NSMenuItem.separator())
         let trashItem = NSMenuItem(title: "휴지통으로 이동", action: #selector(moveToTrashAction), keyEquivalent: String(Character(UnicodeScalar(NSBackspaceCharacter)!)))
         trashItem.keyEquivalentModifierMask = .command
+        trashItem.target = self
         editMenu.addItem(trashItem)
 
         let editMenuItem = NSMenuItem(title: "Edit", action: nil, keyEquivalent: "")
@@ -119,8 +126,8 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
 
         // View menu (refresh)
         let viewMenu = NSMenu(title: "View")
-        viewMenu.addItem(withTitle: "새로고침", action: #selector(refreshAction), keyEquivalent: "r")
-            .keyEquivalentModifierMask = .command
+        let refreshItem = item("새로고침", action: #selector(refreshAction), key: "r")
+        viewMenu.addItem(refreshItem)
 
         let viewMenuItem = NSMenuItem(title: "View", action: nil, keyEquivalent: "")
         viewMenuItem.submenu = viewMenu

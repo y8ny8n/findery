@@ -114,32 +114,21 @@ final class FileListContainerViewController: NSViewController {
         }
     }
 
+    private var renamingRow: Int?
+
     func startRenaming() {
         guard let row = tableView.selectedRowIndexes.first,
               row < files.count else { return }
-        let node = files[row]
-        let alert = NSAlert()
-        alert.messageText = "이름 변경"
-        alert.informativeText = "새 이름을 입력하세요:"
-        alert.addButton(withTitle: "변경")
-        alert.addButton(withTitle: "취소")
+        renamingRow = row
 
-        let input = NSTextField(frame: NSRect(x: 0, y: 0, width: 300, height: 24))
-        input.stringValue = node.name
-        alert.accessoryView = input
+        guard let cellView = tableView.view(atColumn: 0, row: row, makeIfNecessary: false) as? NSTableCellView,
+              let textField = cellView.textField else { return }
 
-        guard let window = view.window else { return }
-        alert.beginSheetModal(for: window) { response in
-            guard response == .alertFirstButtonReturn else { return }
-            let newName = input.stringValue.trimmingCharacters(in: .whitespaces)
-            guard !newName.isEmpty, newName != node.name else { return }
-            do {
-                _ = try FileOperations().rename(at: node.url, to: newName)
-            } catch {
-                let errorAlert = NSAlert(error: error)
-                errorAlert.beginSheetModal(for: window)
-            }
-        }
+        textField.isEditable = true
+        textField.isSelectable = true
+        textField.delegate = self
+        view.window?.makeFirstResponder(textField)
+        textField.selectText(nil)
     }
 
     @objc private func doubleClickRow() {
@@ -275,5 +264,40 @@ extension FileListContainerViewController: QLPreviewPanelDataSource, QLPreviewPa
         let row = selectedRows[index]
         guard row < files.count else { return nil }
         return files[row].url as NSURL
+    }
+}
+
+// MARK: - Inline Rename (NSTextFieldDelegate)
+extension FileListContainerViewController: NSTextFieldDelegate {
+
+    func controlTextDidEndEditing(_ obj: Notification) {
+        guard let textField = obj.object as? NSTextField,
+              let row = renamingRow,
+              row < files.count else {
+            renamingRow = nil
+            return
+        }
+
+        let node = files[row]
+        let newName = textField.stringValue.trimmingCharacters(in: .whitespaces)
+
+        textField.isEditable = false
+        textField.isSelectable = false
+        renamingRow = nil
+
+        guard !newName.isEmpty, newName != node.name else {
+            textField.stringValue = node.name
+            return
+        }
+
+        do {
+            _ = try FileOperations().rename(at: node.url, to: newName)
+        } catch {
+            textField.stringValue = node.name
+            if let window = view.window {
+                let alert = NSAlert(error: error)
+                alert.beginSheetModal(for: window)
+            }
+        }
     }
 }

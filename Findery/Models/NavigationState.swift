@@ -36,8 +36,8 @@ final class NavigationState {
 
     func goUp() -> URL? {
         guard let current = currentURL else { return nil }
-        let parent = current.deletingLastPathComponent()
-        guard parent != current else { return nil }
+        let parent = current.deletingLastPathComponent().standardizedFileURL
+        guard parent != current.standardizedFileURL else { return nil }
         navigate(to: parent)
         return parent
     }
