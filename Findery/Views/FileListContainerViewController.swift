@@ -350,7 +350,10 @@ final class FileListContainerViewController: NSViewController {
               row < files.count else { return }
         renamingRow = row
 
-        guard let cellView = tableView.view(atColumn: 0, row: row, makeIfNecessary: false) as? NSTableCellView,
+        // Name 컬럼 인덱스 찾기
+        let nameColIndex = tableView.column(withIdentifier: NSUserInterfaceItemIdentifier("Name"))
+        guard nameColIndex >= 0,
+              let cellView = tableView.view(atColumn: nameColIndex, row: row, makeIfNecessary: true) as? NSTableCellView,
               let textField = cellView.textField else { return }
 
         textField.isEditable = true
@@ -360,18 +363,22 @@ final class FileListContainerViewController: NSViewController {
         textField.bezelStyle = .roundedBezel
         textField.drawsBackground = true
         textField.delegate = self
-        textField.window?.makeFirstResponder(textField)
 
-        // Select filename without extension
-        let name = textField.stringValue
-        if let dotRange = name.range(of: ".", options: .backwards),
-           dotRange.lowerBound != name.startIndex {
-            let editor = textField.currentEditor()
-            let nsName = name as NSString
-            let selectLength = nsName.range(of: ".", options: .backwards).location
-            editor?.selectedRange = NSRange(location: 0, length: selectLength)
-        } else {
-            textField.selectText(nil)
+        // 약간의 딜레이 후 포커스 (셀 렌더링 대기)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            textField.window?.makeFirstResponder(textField)
+
+            // 확장자 제외하고 파일명만 선택
+            let name = textField.stringValue
+            if let dotRange = name.range(of: ".", options: .backwards),
+               dotRange.lowerBound != name.startIndex {
+                let editor = textField.currentEditor()
+                let nsName = name as NSString
+                let selectLength = nsName.range(of: ".", options: .backwards).location
+                editor?.selectedRange = NSRange(location: 0, length: selectLength)
+            } else {
+                textField.selectText(nil)
+            }
         }
     }
 
@@ -531,6 +538,8 @@ extension FileListContainerViewController: QLPreviewPanelDataSource, QLPreviewPa
     override func keyDown(with event: NSEvent) {
         if event.characters == " " {
             toggleQuickLook()
+        } else if event.keyCode == 120 { // F2
+            startRenaming()
         } else if event.keyCode == 36 { // Enter/Return
             openSelectedItem()
         } else if event.keyCode == 51 && event.modifierFlags.intersection(.deviceIndependentFlagsMask) == [] {
