@@ -343,14 +343,14 @@ final class FileListContainerViewController: NSViewController {
         }
     }
 
-    private var renamingRow: Int?
+    private var renamingURL: URL?
 
     func startRenaming() {
         guard let row = tableView.selectedRowIndexes.first,
               row < files.count else { return }
-        renamingRow = row
+        let node = files[row]
+        renamingURL = node.url
 
-        // Name 컬럼 인덱스 찾기
         let nameColIndex = tableView.column(withIdentifier: NSUserInterfaceItemIdentifier("Name"))
         guard nameColIndex >= 0,
               let cellView = tableView.view(atColumn: nameColIndex, row: row, makeIfNecessary: true) as? NSTableCellView,
@@ -364,11 +364,8 @@ final class FileListContainerViewController: NSViewController {
         textField.drawsBackground = true
         textField.delegate = self
 
-        // 약간의 딜레이 후 포커스 (셀 렌더링 대기)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             textField.window?.makeFirstResponder(textField)
-
-            // 확장자 제외하고 파일명만 선택
             let name = textField.stringValue
             if let dotRange = name.range(of: ".", options: .backwards),
                dotRange.lowerBound != name.startIndex {
@@ -504,6 +501,13 @@ extension FileListContainerViewController: NSTableViewDelegate {
         case "Name":
             cell.textField?.stringValue = node.name
             cell.imageView?.image = iconCache?.icon(for: node)
+            // 셀 재사용 시 편집 상태 리셋
+            cell.textField?.isEditable = false
+            cell.textField?.isSelectable = false
+            cell.textField?.isBordered = false
+            cell.textField?.isBezeled = false
+            cell.textField?.drawsBackground = false
+            cell.textField?.delegate = nil
         case "Size":
             cell.textField?.stringValue = node.formattedSize
         case "Date":
@@ -538,13 +542,14 @@ extension FileListContainerViewController: QLPreviewPanelDataSource, QLPreviewPa
     override func keyDown(with event: NSEvent) {
         if event.characters == " " {
             toggleQuickLook()
-        } else if event.keyCode == 120 { // F2
-            startRenaming()
         } else if event.keyCode == 36 { // Enter/Return
-            openSelectedItem()
+            if renamingURL == nil {
+                openSelectedItem()
+            }
         } else if event.keyCode == 51 && event.modifierFlags.intersection(.deviceIndependentFlagsMask) == [] {
-            // Backspace (⌘ 없이) → 뒤로가기
-            NotificationCenter.default.post(name: .finderyGoBack, object: nil)
+            if renamingURL == nil {
+                NotificationCenter.default.post(name: .finderyGoBack, object: nil)
+            }
         } else {
             super.keyDown(with: event)
         }
@@ -600,27 +605,47 @@ extension FileListContainerViewController: QLPreviewPanelDataSource, QLPreviewPa
 // MARK: - Inline Rename (NSTextFieldDelegate)
 extension FileListContainerViewController: NSTextFieldDelegate {
 
-    func controlTextDidEndEditing(_ obj: Notification) {
-        // 검색바 이벤트는 무시
-        if let field = obj.object as? NSSearchField { return }
-
-        guard let textField = obj.object as? NSTextField,
-              let row = renamingRow,
-              row < files.count else {
-            renamingRow = nil
-            return
-        }
-
-        let node = files[row]
-        let newName = textField.stringValue.trimmingCharacters(in: .whitespaces)
-
-        // Restore label style
+    private func restoreTextField(_ textField: NSTextField) {
         textField.isEditable = false
         textField.isSelectable = false
         textField.isBordered = false
         textField.isBezeled = false
         textField.drawsBackground = false
-        renamingRow = nil
+        textField.delegate = nil
+    }
+
+    func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+        // 검색바는 무시
+        if control is NSSearchField { return false }
+
+        if commandSelector == #selector(NSResponder.cancelOperation(_:)) {
+            // Escape → 리네임 취소
+            if let url = renamingURL,
+               let node = files.first(where: { $0.url == url }),
+               let textField = control as? NSTextField {
+                textField.stringValue = node.name
+                restoreTextField(textField)
+                renamingURL = nil
+                view.window?.makeFirstResponder(tableView)
+            }
+            return true
+        }
+        return false
+    }
+
+    func controlTextDidEndEditing(_ obj: Notification) {
+        if obj.object is NSSearchField { return }
+
+        guard let textField = obj.object as? NSTextField,
+              let url = renamingURL,
+              let node = files.first(where: { $0.url == url }) else {
+            renamingURL = nil
+            return
+        }
+
+        let newName = textField.stringValue.trimmingCharacters(in: .whitespaces)
+        restoreTextField(textField)
+        renamingURL = nil
 
         guard !newName.isEmpty, newName != node.name else {
             textField.stringValue = node.name
