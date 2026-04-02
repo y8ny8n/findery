@@ -319,8 +319,21 @@ extension FileListContainerViewController: QLPreviewPanelDataSource, QLPreviewPa
     override func keyDown(with event: NSEvent) {
         if event.characters == " " {
             toggleQuickLook()
+        } else if event.keyCode == 36 { // Enter/Return
+            openSelectedItem()
         } else {
             super.keyDown(with: event)
+        }
+    }
+
+    private func openSelectedItem() {
+        guard let row = tableView.selectedRowIndexes.first,
+              row < files.count else { return }
+        let node = files[row]
+        if node.isDirectory {
+            onNavigate?(node.url)
+        } else {
+            FileOperations().openFile(node.url)
         }
     }
 
@@ -417,6 +430,28 @@ extension FileListContainerViewController {
 
     @objc func paste(_ sender: Any?) {
         NotificationCenter.default.post(name: .finderyPaste, object: nil)
+    }
+}
+
+// MARK: - Services support
+extension FileListContainerViewController: NSServicesMenuRequestor {
+
+    override func validRequestor(forSendType sendType: NSPasteboard.PasteboardType?, returnType: NSPasteboard.PasteboardType?) -> Any? {
+        if sendType == .fileURL || sendType == .string {
+            if !selectedFileURLs.isEmpty {
+                return self
+            }
+        }
+        return super.validRequestor(forSendType: sendType, returnType: returnType)
+    }
+
+    func writeSelection(to pboard: NSPasteboard, types: [NSPasteboard.PasteboardType]) -> Bool {
+        let urls = selectedFileURLs
+        guard !urls.isEmpty else { return false }
+        pboard.clearContents()
+        pboard.writeObjects(urls as [NSURL])
+        pboard.setString(urls.map(\.path).joined(separator: "\n"), forType: .string)
+        return true
     }
 }
 
