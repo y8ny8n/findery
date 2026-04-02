@@ -347,52 +347,62 @@ final class FileListContainerViewController: NSViewController {
 
     func startRenaming() {
         guard let row = tableView.selectedRowIndexes.first,
-              row < files.count,
-              let parentWindow = view.window else {
-            NSSound.beep()
-            return
-        }
+              row < files.count else { return }
         let node = files[row]
         renamingURL = node.url
 
-        let alert = NSAlert()
-        alert.messageText = "이름 변경"
-        alert.informativeText = node.name
-        alert.addButton(withTitle: "변경")
-        alert.addButton(withTitle: "취소")
+        let nameColIndex = tableView.column(withIdentifier: NSUserInterfaceItemIdentifier("Name"))
+        guard nameColIndex >= 0,
+              let cellView = tableView.view(atColumn: nameColIndex, row: row, makeIfNecessary: false) as? NSTableCellView,
+              let textField = cellView.textField else { return }
 
-        let inputField = NSTextField(frame: NSRect(x: 0, y: 0, width: 300, height: 24))
-        inputField.stringValue = node.name
-        inputField.font = NSFont.systemFont(ofSize: 13)
-        alert.accessoryView = inputField
-        alert.window.initialFirstResponder = inputField
+        // 편집 모드 활성화
+        textField.isEditable = true
+        textField.isBordered = true
+        textField.drawsBackground = true
 
-        // 확장자 제외 선택 (alert이 표시된 후 수행)
-        let name = node.name
+        // 공식 NSTableView 편집 API 사용
+        tableView.editColumn(nameColIndex, row: row, with: nil, select: false)
+
+        // 확장자 제외 선택
         DispatchQueue.main.async {
+            let name = textField.stringValue
             if let dotIndex = name.lastIndex(of: "."), dotIndex != name.startIndex {
                 let length = name.distance(from: name.startIndex, to: dotIndex)
-                inputField.currentEditor()?.selectedRange = NSRange(location: 0, length: length)
+                textField.currentEditor()?.selectedRange = NSRange(location: 0, length: length)
             } else {
-                inputField.selectText(nil)
+                textField.currentEditor()?.selectAll(nil)
             }
         }
+    }
 
-        alert.beginSheetModal(for: parentWindow) { [weak self] response in
-            guard let self else { return }
-            self.renamingURL = nil
+    private func finishRenaming(textField: NSTextField) {
+        textField.isEditable = false
+        textField.isBordered = false
+        textField.drawsBackground = false
 
-            guard response == .alertFirstButtonReturn else { return }
+        guard let url = renamingURL,
+              let node = files.first(where: { $0.url == url }) else {
+            renamingURL = nil
+            return
+        }
 
-            let newName = inputField.stringValue.trimmingCharacters(in: .whitespaces)
-            guard !newName.isEmpty, newName != node.name else { return }
+        let newName = textField.stringValue.trimmingCharacters(in: .whitespaces)
+        renamingURL = nil
 
-            do {
-                let renamedURL = try FileOperations().rename(at: node.url, to: newName)
-                self.onRenameComplete?(node.url, renamedURL)
-            } catch {
-                let errAlert = NSAlert(error: error)
-                errAlert.beginSheetModal(for: parentWindow)
+        guard !newName.isEmpty, newName != node.name else {
+            textField.stringValue = node.name
+            return
+        }
+
+        do {
+            let renamedURL = try FileOperations().rename(at: node.url, to: newName)
+            onRenameComplete?(node.url, renamedURL)
+        } catch {
+            textField.stringValue = node.name
+            if let window = view.window {
+                let alert = NSAlert(error: error)
+                alert.beginSheetModal(for: window)
             }
         }
     }
@@ -481,7 +491,17 @@ extension FileListContainerViewController: NSTableViewDelegate {
             cell = NSTableCellView()
             cell.identifier = cellID
 
-            let textField = NSTextField(labelWithString: "")
+            let textField: NSTextField
+            if columnID == "Name" {
+                // Name 컬럼: 편집 가능한 NSTextField (평소엔 라벨처럼 보임)
+                textField = NSTextField()
+                textField.isBordered = false
+                textField.drawsBackground = false
+                textField.isEditable = false
+                textField.delegate = self
+            } else {
+                textField = NSTextField(labelWithString: "")
+            }
             textField.translatesAutoresizingMaskIntoConstraints = false
             textField.lineBreakMode = .byTruncatingTail
             cell.addSubview(textField)
@@ -611,8 +631,36 @@ extension FileListContainerViewController: QLPreviewPanelDataSource, QLPreviewPa
     }
 }
 
-// MARK: - NSTextFieldDelegate (search field)
+// MARK: - NSTextFieldDelegate (rename + search)
 extension FileListContainerViewController: NSTextFieldDelegate {
+
+    func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+        if control is NSSearchField { return false }
+        guard renamingURL != nil else { return false }
+
+        if commandSelector == #selector(NSResponder.cancelOperation(_:)) {
+            // Escape: 이름 변경 취소
+            if let textField = control as? NSTextField,
+               let url = renamingURL,
+               let node = files.first(where: { $0.url == url }) {
+                textField.stringValue = node.name
+                textField.isEditable = false
+                textField.isBordered = false
+                textField.drawsBackground = false
+                renamingURL = nil
+                view.window?.makeFirstResponder(tableView)
+            }
+            return true
+        }
+        return false
+    }
+
+    func controlTextDidEndEditing(_ obj: Notification) {
+        if obj.object is NSSearchField { return }
+        guard let textField = obj.object as? NSTextField,
+              renamingURL != nil else { return }
+        finishRenaming(textField: textField)
+    }
 }
 
 // MARK: - File Copy/Cut/Paste (standard selectors from Edit menu)
