@@ -37,6 +37,8 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         )
         window.title = "Findery"
         window.minSize = NSSize(width: 600, height: 400)
+        window.tabbingMode = .preferred
+        window.tabbingIdentifier = "FinderyTab"
         // 화면 중앙에 크게 배치
         if let screen = NSScreen.main {
             let screenFrame = screen.visibleFrame
@@ -117,6 +119,8 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
 
         // File menu
         let fileMenu = NSMenu(title: "File")
+        let newTabItem = NSMenuItem(title: "새 탭", action: #selector(AppDelegate.newTab(_:)), keyEquivalent: "t")
+        fileMenu.addItem(newTabItem)
         fileMenu.addItem(item("새 폴더", action: #selector(newFolderAction), key: "n", modifiers: [.command, .shift]))
         let compressMenuItem = NSMenuItem(title: "압축하기", action: #selector(compressSelectedAction), keyEquivalent: "c")
         compressMenuItem.keyEquivalentModifierMask = [.control, .shift]

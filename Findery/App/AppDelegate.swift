@@ -2,18 +2,32 @@ import AppKit
 
 class AppDelegate: NSObject, NSApplicationDelegate {
 
-    private var mainWindowController: MainWindowController?
+    var windowControllers: [MainWindowController] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // 서비스 메뉴에 파일 URL과 문자열 타입 등록
         NSApp.registerServicesMenuSendTypes([.fileURL, .string], returnTypes: [])
 
-        mainWindowController = MainWindowController()
-        mainWindowController?.window?.makeKeyAndOrderFront(nil)
+        let wc = createWindowController()
+        wc.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         true
+    }
+
+    @discardableResult
+    func createWindowController() -> MainWindowController {
+        let wc = MainWindowController()
+        windowControllers.append(wc)
+        return wc
+    }
+
+    @IBAction func newTab(_ sender: Any?) {
+        guard let currentWindow = NSApp.keyWindow else { return }
+        let wc = createWindowController()
+        guard let newWindow = wc.window else { return }
+        currentWindow.addTabbedWindow(newWindow, ordered: .above)
+        newWindow.makeKeyAndOrderFront(nil)
     }
 }
