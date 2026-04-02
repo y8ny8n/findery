@@ -169,7 +169,7 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         editMenu.addItem(renameItem)
 
         editMenu.addItem(NSMenuItem.separator())
-        let trashItem = NSMenuItem(title: "휴지통으로 이동", action: #selector(moveToTrashAction), keyEquivalent: String(Character(UnicodeScalar(NSBackspaceCharacter)!)))
+        let trashItem = NSMenuItem(title: "휴지통으로 이동", action: #selector(moveToTrashAction), keyEquivalent: "\u{08}")
         trashItem.keyEquivalentModifierMask = .command
         trashItem.target = self
         editMenu.addItem(trashItem)
@@ -213,6 +213,7 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         nc.addObserver(self, selector: #selector(handleFileCopy(_:)), name: .finderyCopy, object: nil)
         nc.addObserver(self, selector: #selector(handleFileCut(_:)), name: .finderyCut, object: nil)
         nc.addObserver(self, selector: #selector(handleFilePaste), name: .finderyPaste, object: nil)
+        nc.addObserver(self, selector: #selector(moveToTrashAction), name: .finderyMoveToTrash, object: nil)
         nc.addObserver(self, selector: #selector(handleToggleHidden(_:)), name: .finderyToggleHidden, object: nil)
     }
 

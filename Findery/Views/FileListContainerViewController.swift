@@ -677,13 +677,18 @@ extension FileListContainerViewController: NSTableViewDelegate {
 extension FileListContainerViewController: QLPreviewPanelDataSource, QLPreviewPanelDelegate {
 
     override func keyDown(with event: NSEvent) {
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         if event.keyCode == 120 { // F2 — rename
             startRenaming()
         } else if event.characters == " " {
             toggleQuickLook()
         } else if event.keyCode == 36 { // Enter/Return
             openSelectedItem()
-        } else if event.keyCode == 51 && event.modifierFlags.intersection(.deviceIndependentFlagsMask) == [] {
+        } else if event.keyCode == 51 && flags == .command {
+            // ⌘+Delete → 휴지통
+            NotificationCenter.default.post(name: .finderyMoveToTrash, object: nil)
+        } else if event.keyCode == 51 && flags == [] {
+            // Delete만 → 뒤로가기
             NotificationCenter.default.post(name: .finderyGoBack, object: nil)
         } else {
             super.keyDown(with: event)

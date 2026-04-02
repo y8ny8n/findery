@@ -9,4 +9,5 @@ extension Notification.Name {
     static let finderyPaste = Notification.Name("finderyPaste")
     static let finderyToggleHidden = Notification.Name("finderyToggleHidden")
     static let finderyFavoritesChanged = Notification.Name("finderyFavoritesChanged")
+    static let finderyMoveToTrash = Notification.Name("finderyMoveToTrash")
 }
