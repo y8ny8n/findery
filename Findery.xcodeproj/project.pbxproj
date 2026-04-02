@@ -25,6 +25,7 @@
 		CD12F4DF6EECA11475583510 /* IconCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 083CE45EFAFA28F667212C0E /* IconCache.swift */; };
 		D0F5A455FEAFC9B8C5E935F8 /* FileListContainerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0B2EF0B7255B2BE04D74447 /* FileListContainerViewController.swift */; };
 		D9C30209B82B847825F1C475 /* StatusBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A63D383807172DB2DB74DA1A /* StatusBarView.swift */; };
+		EAE5F65A99AA6F8A155687FA /* FavoritesManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2B8AD99CA7E35448CC1CF11 /* FavoritesManager.swift */; };
 		F51EBD5B744671EA9881F2F2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABAE572F03CA42271B9A855F /* AppDelegate.swift */; };
 		F7E377CCCBD470C45B364E36 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 0BD7097CFD19645860536174 /* AppIcon.icns */; };
 /* End PBXBuildFile section */
@@ -54,6 +55,7 @@
 		69C38B990D44E784536FCC1E /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
 		8CBD3BF7729AC637DA70746D /* AddressBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressBarView.swift; sourceTree = "<group>"; };
 		9C4834C485D2670295F09CB8 /* Findery.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Findery.entitlements; sourceTree = "<group>"; };
+		A2B8AD99CA7E35448CC1CF11 /* FavoritesManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesManager.swift; sourceTree = "<group>"; };
 		A31E52D4F29518F569EDF457 /* NavigationStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationStateTests.swift; sourceTree = "<group>"; };
 		A58C5B44F53B90F738F5D2B1 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		A63D383807172DB2DB74DA1A /* StatusBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarView.swift; sourceTree = "<group>"; };
@@ -101,6 +103,7 @@
 		A29E07951776E6378D3AA438 /* Controllers */ = {
 			isa = PBXGroup;
 			children = (
+				A2B8AD99CA7E35448CC1CF11 /* FavoritesManager.swift */,
 				3CF2CD86BF22845AE7FBE610 /* FileOperations.swift */,
 				29CAC095B2ACF1F04141527B /* FileSystemController.swift */,
 				DF1B3726386EA32329B1EB97 /* FileWatcher.swift */,
@@ -260,6 +263,7 @@
 			files = (
 				0C9DB1A8C28BE63878271DBD /* AddressBarView.swift in Sources */,
 				F51EBD5B744671EA9881F2F2 /* AppDelegate.swift in Sources */,
+				EAE5F65A99AA6F8A155687FA /* FavoritesManager.swift in Sources */,
 				D0F5A455FEAFC9B8C5E935F8 /* FileListContainerViewController.swift in Sources */,
 				AA94AB19074A642AF4848931 /* FileNode.swift in Sources */,
 				3B5F19BFEA9225F3B3ACD9F2 /* FileOperations.swift in Sources */,

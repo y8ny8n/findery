@@ -326,6 +326,23 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
             infoItem.target = self
             infoItem.representedObject = url
             menu.addItem(infoItem)
+
+            // 폴더일 때 즐겨찾기 추가/제거
+            let isDir = (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
+            if isDir {
+                menu.addItem(NSMenuItem.separator())
+                if FavoritesManager.shared.contains(url) {
+                    let removeItem = NSMenuItem(title: "즐겨찾기에서 제거", action: #selector(contextRemoveFavorite(_:)), keyEquivalent: "")
+                    removeItem.target = self
+                    removeItem.representedObject = url
+                    menu.addItem(removeItem)
+                } else {
+                    let addItem = NSMenuItem(title: "즐겨찾기에 추가", action: #selector(contextAddFavorite(_:)), keyEquivalent: "")
+                    addItem.target = self
+                    addItem.representedObject = url
+                    menu.addItem(addItem)
+                }
+            }
         }
 
         menu.addItem(NSMenuItem.separator())
@@ -619,6 +636,16 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
             try? process.run()
             process.waitUntilExit()
         }
+    }
+
+    @objc private func contextAddFavorite(_ sender: NSMenuItem) {
+        guard let url = sender.representedObject as? URL else { return }
+        FavoritesManager.shared.add(url)
+    }
+
+    @objc private func contextRemoveFavorite(_ sender: NSMenuItem) {
+        guard let url = sender.representedObject as? URL else { return }
+        FavoritesManager.shared.remove(url: url)
     }
 
     @objc private func refreshAction() {

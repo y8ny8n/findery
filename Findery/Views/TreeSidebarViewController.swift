@@ -19,6 +19,13 @@ final class TreeSidebarViewController: NSViewController {
         setupScrollView()
         setupOutlineView()
         buildSections()
+
+        NotificationCenter.default.addObserver(self, selector: #selector(favoritesChanged),
+                                                name: .finderyFavoritesChanged, object: nil)
+    }
+
+    @objc private func favoritesChanged() {
+        buildSections()
     }
 
     private func setupScrollView() {
@@ -48,18 +55,24 @@ final class TreeSidebarViewController: NSViewController {
         outlineView.indentationPerLevel = 14
         outlineView.style = .sourceList
         outlineView.floatsGroupRows = true
+
+        // 우클릭 메뉴
+        outlineView.menu = NSMenu()
+        outlineView.menu?.delegate = self
     }
 
     private func buildSections() {
-        let home = FileSystemController.homeDirectory
+        let mgr = FavoritesManager.shared
 
-        // 즐겨찾기
-        let favorites = SidebarSection(title: "즐겨찾기", items: [
-            SidebarItem(name: "데스크톱", url: home.appendingPathComponent("Desktop"), icon: "desktopcomputer"),
-            SidebarItem(name: "다운로드", url: home.appendingPathComponent("Downloads"), icon: "arrow.down.circle.fill"),
-            SidebarItem(name: "문서", url: home.appendingPathComponent("Documents"), icon: "doc.fill"),
-            SidebarItem(name: "홈", url: home, icon: "house.fill"),
-        ])
+        let favoriteItems = mgr.favorites.map { url in
+            SidebarItem(
+                name: url.path == FileSystemController.homeDirectory.path ? "홈" : url.lastPathComponent,
+                url: url,
+                icon: FavoritesManager.icon(for: url),
+                isFavorite: true
+            )
+        }
+        let favorites = SidebarSection(title: "즐겨찾기", items: favoriteItems)
 
         // 위치
         let volumes = (try? FileManager.default.contentsOfDirectory(
@@ -69,17 +82,15 @@ final class TreeSidebarViewController: NSViewController {
         )) ?? []
 
         var locationItems = volumes.map { vol in
-            SidebarItem(name: vol.lastPathComponent, url: vol, icon: "externaldrive.fill")
+            SidebarItem(name: vol.lastPathComponent, url: vol, icon: "externaldrive.fill", isFavorite: false)
         }
-        // 루트 추가
-        locationItems.insert(SidebarItem(name: "Macintosh HD", url: URL(fileURLWithPath: "/"), icon: "internaldrive.fill"), at: 0)
+        locationItems.insert(SidebarItem(name: "Macintosh HD", url: URL(fileURLWithPath: "/"), icon: "internaldrive.fill", isFavorite: false), at: 0)
 
         let locations = SidebarSection(title: "위치", items: locationItems)
 
         sections = [favorites, locations]
         outlineView.reloadData()
 
-        // 섹션 기본 펼치기
         for section in sections {
             outlineView.expandItem(section)
         }
@@ -100,8 +111,11 @@ final class TreeSidebarViewController: NSViewController {
                 return
             }
         }
-        // 일치하는 항목 없으면 선택 해제
         outlineView.deselectAll(nil)
+    }
+
+    func addCurrentToFavorites(_ url: URL) {
+        FavoritesManager.shared.add(url)
     }
 }
 
@@ -137,7 +151,6 @@ extension TreeSidebarViewController: NSOutlineViewDelegate {
     }
 
     func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
-        // 섹션 헤더
         if let section = item as? SidebarSection {
             let cellID = NSUserInterfaceItemIdentifier("HeaderCell")
             let cell: NSTableCellView
@@ -161,7 +174,6 @@ extension TreeSidebarViewController: NSOutlineViewDelegate {
             return cell
         }
 
-        // 일반 항목
         if let item = item as? SidebarItem {
             let cellID = NSUserInterfaceItemIdentifier("ItemCell")
             let cell: NSTableCellView
@@ -215,6 +227,30 @@ extension TreeSidebarViewController: NSOutlineViewDelegate {
     }
 }
 
+// MARK: - Context Menu
+extension TreeSidebarViewController: NSMenuDelegate {
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.removeAllItems()
+
+        let clickedRow = outlineView.clickedRow
+        guard clickedRow >= 0,
+              let item = outlineView.item(atRow: clickedRow) as? SidebarItem else { return }
+
+        if item.isFavorite {
+            let removeItem = NSMenuItem(title: "즐겨찾기에서 제거", action: #selector(removeFavorite(_:)), keyEquivalent: "")
+            removeItem.target = self
+            removeItem.representedObject = item.url
+            menu.addItem(removeItem)
+        }
+    }
+
+    @objc private func removeFavorite(_ sender: NSMenuItem) {
+        guard let url = sender.representedObject as? URL else { return }
+        FavoritesManager.shared.remove(url: url)
+    }
+}
+
 // MARK: - Data Models
 
 final class SidebarSection {
@@ -231,10 +267,12 @@ final class SidebarItem {
     let name: String
     let url: URL
     let icon: String
+    let isFavorite: Bool
 
-    init(name: String, url: URL, icon: String) {
+    init(name: String, url: URL, icon: String, isFavorite: Bool) {
         self.name = name
         self.url = url
         self.icon = icon
+        self.isFavorite = isFavorite
     }
 }
