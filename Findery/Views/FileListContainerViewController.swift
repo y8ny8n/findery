@@ -405,12 +405,11 @@ final class FileListContainerViewController: NSViewController {
         // 공식 NSTableView 편집 API 사용 (전체 선택으로 시작)
         tableView.editColumn(nameColIndex, row: row, with: nil, select: true)
 
-        // 파일의 실제 확장자만 제외하고 선택 (pathExtension 기반)
-        let ext = node.url.pathExtension
+        // 파일만 확장자 제외 선택, 폴더는 전체 선택
+        let ext = node.isDirectory ? "" : node.url.pathExtension
         DispatchQueue.main.async {
             guard let editor = textField.currentEditor() else { return }
             if !ext.isEmpty {
-                // "file.txt" → "file" 선택 (.txt 제외)
                 let name = textField.stringValue
                 let extWithDot = "." + ext
                 if name.hasSuffix(extWithDot) {
@@ -418,7 +417,6 @@ final class FileListContainerViewController: NSViewController {
                     editor.selectedRange = NSRange(location: 0, length: length)
                 }
             }
-            // 확장자 없으면 전체 선택 유지 (select: true)
         }
     }
 
