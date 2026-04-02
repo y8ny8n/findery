@@ -294,7 +294,7 @@ private final class SuggestionsPanel: NSObject {
         scrollView.documentView = tableView
         scrollView.hasVerticalScroller = true
         scrollView.autohidesScrollers = true
-        scrollView.frame = panel.contentView!.bounds
+        scrollView.frame = panel.contentView?.bounds ?? .zero
         scrollView.autoresizingMask = [.width, .height]
         panel.contentView?.addSubview(scrollView)
 

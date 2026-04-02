@@ -45,6 +45,8 @@ final class FileSystemController {
     }
 
     static func expandTilde(_ path: String) -> URL? {
+        guard !path.isEmpty else { return nil }
+
         let expanded: String
         if path.hasPrefix("~/") {
             expanded = (path as NSString).expandingTildeInPath

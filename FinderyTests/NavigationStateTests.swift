@@ -4,9 +4,9 @@ import XCTest
 final class NavigationStateTests: XCTestCase {
 
     private var state: NavigationState!
-    private let home = URL(fileURLWithPath: "/Users/test")
-    private let desktop = URL(fileURLWithPath: "/Users/test/Desktop")
-    private let documents = URL(fileURLWithPath: "/Users/test/Documents")
+    private let home = URL(fileURLWithPath: "/Users/test", isDirectory: true)
+    private let desktop = URL(fileURLWithPath: "/Users/test/Desktop", isDirectory: true)
+    private let documents = URL(fileURLWithPath: "/Users/test/Documents", isDirectory: true)
 
     override func setUp() {
         super.setUp()
@@ -72,8 +72,8 @@ final class NavigationStateTests: XCTestCase {
     func testGoUp() {
         state.navigate(to: desktop)
         let parent = state.goUp()
-        XCTAssertEqual(parent, home)
-        XCTAssertEqual(state.currentURL, home)
+        XCTAssertEqual(parent?.standardizedFileURL, home.standardizedFileURL)
+        XCTAssertEqual(state.currentURL?.standardizedFileURL, home.standardizedFileURL)
         XCTAssertTrue(state.canGoBack)
     }
 
