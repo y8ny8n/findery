@@ -158,11 +158,17 @@ final class AddressBarView: NSView, NSTextFieldDelegate {
 
         suggestionsVC.update(suggestions: suggestions)
 
+        let newSize = NSSize(width: textField.bounds.width, height: min(CGFloat(suggestions.count) * 24, 240))
         if !popover.isShown {
-            popover.contentSize = NSSize(width: textField.bounds.width, height: min(CGFloat(suggestions.count) * 24, 240))
+            popover.contentSize = newSize
             popover.show(relativeTo: textField.bounds, of: textField, preferredEdge: .maxY)
         } else {
-            popover.contentSize = NSSize(width: textField.bounds.width, height: min(CGFloat(suggestions.count) * 24, 240))
+            popover.contentSize = newSize
+        }
+        // popover가 포커스를 빼앗으므로 즉시 텍스트 필드로 복원
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.window?.makeFirstResponder(self.textField)
         }
     }
 
