@@ -37,7 +37,15 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         )
         window.title = "Findery"
         window.minSize = NSSize(width: 600, height: 400)
-        window.center()
+        // 화면 중앙에 크게 배치
+        if let screen = NSScreen.main {
+            let screenFrame = screen.visibleFrame
+            let x = screenFrame.origin.x + (screenFrame.width - 1200) / 2
+            let y = screenFrame.origin.y + (screenFrame.height - 800) / 2
+            window.setFrame(NSRect(x: x, y: y, width: 1200, height: 800), display: true)
+        } else {
+            window.center()
+        }
 
         super.init(window: window)
         setupSplitView()
