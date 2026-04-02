@@ -14,6 +14,7 @@ final class FileListContainerViewController: NSViewController {
     private var sortAscending = true
 
     var onNavigate: ((URL) -> Void)?
+    var contextMenuProvider: (([URL]) -> NSMenu)?
 
     enum SortKey: String {
         case name, size, date, kind
@@ -65,6 +66,8 @@ final class FileListContainerViewController: NSViewController {
         tableView.allowsMultipleSelection = true
         tableView.usesAlternatingRowBackgroundColors = true
         tableView.style = .fullWidth
+        tableView.menu = NSMenu()
+        tableView.menu?.delegate = self
 
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.documentView = tableView
@@ -317,6 +320,33 @@ extension FileListContainerViewController: NSTextFieldDelegate {
                 let alert = NSAlert(error: error)
                 alert.beginSheetModal(for: window)
             }
+        }
+    }
+}
+
+// MARK: - Context Menu (NSMenuDelegate)
+extension FileListContainerViewController: NSMenuDelegate {
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.removeAllItems()
+
+        let clickedRow = tableView.clickedRow
+        let urls: [URL]
+
+        if clickedRow >= 0 {
+            if !tableView.selectedRowIndexes.contains(clickedRow) {
+                tableView.selectRowIndexes(IndexSet(integer: clickedRow), byExtendingSelection: false)
+            }
+            urls = selectedFileURLs
+        } else {
+            urls = []
+        }
+
+        guard let provider = contextMenuProvider else { return }
+        let contextMenu = provider(urls)
+        for item in contextMenu.items {
+            contextMenu.removeItem(item)
+            menu.addItem(item)
         }
     }
 }

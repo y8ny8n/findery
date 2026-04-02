@@ -1,9 +1,9 @@
 import Foundation
+import CoreServices
 
 final class FileWatcher {
 
-    private var source: DispatchSourceFileSystemObject?
-    private var fileDescriptor: Int32 = -1
+    private var stream: FSEventStreamRef?
     private(set) var watchedURL: URL?
 
     var onChange: (() -> Void)?
@@ -12,31 +12,44 @@ final class FileWatcher {
         stop()
         watchedURL = url
 
-        fileDescriptor = open(url.path, O_EVTONLY)
-        guard fileDescriptor >= 0 else { return }
+        let callback: FSEventStreamCallback = { _, clientInfo, numEvents, eventPaths, _, _ in
+            guard let info = clientInfo else { return }
+            let watcher = Unmanaged<FileWatcher>.fromOpaque(info).takeUnretainedValue()
+            DispatchQueue.main.async {
+                watcher.onChange?()
+            }
+        }
 
-        source = DispatchSource.makeFileSystemObjectSource(
-            fileDescriptor: fileDescriptor,
-            eventMask: [.write, .delete, .rename, .attrib],
-            queue: .main
+        var context = FSEventStreamContext(
+            version: 0,
+            info: Unmanaged.passUnretained(self).toOpaque(),
+            retain: nil,
+            release: nil,
+            copyDescription: nil
         )
 
-        source?.setEventHandler { [weak self] in
-            self?.onChange?()
-        }
+        let paths = [url.path] as CFArray
+        stream = FSEventStreamCreate(
+            nil,
+            callback,
+            &context,
+            paths,
+            FSEventStreamEventId(kFSEventStreamEventIdSinceNow),
+            0.3,
+            UInt32(kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagFileEvents)
+        )
 
-        source?.setCancelHandler { [weak self] in
-            guard let fd = self?.fileDescriptor, fd >= 0 else { return }
-            close(fd)
-            self?.fileDescriptor = -1
-        }
-
-        source?.resume()
+        guard let stream else { return }
+        FSEventStreamSetDispatchQueue(stream, .main)
+        FSEventStreamStart(stream)
     }
 
     func stop() {
-        source?.cancel()
-        source = nil
+        guard let stream else { return }
+        FSEventStreamStop(stream)
+        FSEventStreamInvalidate(stream)
+        FSEventStreamRelease(stream)
+        self.stream = nil
         watchedURL = nil
     }
 

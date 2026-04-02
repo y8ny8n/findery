@@ -55,4 +55,46 @@ final class FileOperations {
     func openFile(_ url: URL) {
         NSWorkspace.shared.open(url)
     }
+
+    // MARK: - Clipboard
+
+    func copyToClipboard(urls: [URL]) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.writeObjects(urls as [NSURL])
+    }
+
+    func copyFiles(_ sources: [URL], to destination: URL) throws {
+        for source in sources {
+            var destURL = destination.appendingPathComponent(source.lastPathComponent)
+            destURL = uniqueURL(destURL)
+            try FileManager.default.copyItem(at: source, to: destURL)
+        }
+    }
+
+    func moveFiles(_ sources: [URL], to destination: URL) throws {
+        for source in sources {
+            var destURL = destination.appendingPathComponent(source.lastPathComponent)
+            destURL = uniqueURL(destURL)
+            try FileManager.default.moveItem(at: source, to: destURL)
+        }
+    }
+
+    private func uniqueURL(_ url: URL) -> URL {
+        guard FileManager.default.fileExists(atPath: url.path) else { return url }
+
+        let directory = url.deletingLastPathComponent()
+        let name = url.deletingPathExtension().lastPathComponent
+        let ext = url.pathExtension
+
+        var counter = 2
+        while true {
+            let newName = ext.isEmpty ? "\(name) \(counter)" : "\(name) \(counter).\(ext)"
+            let newURL = directory.appendingPathComponent(newName)
+            if !FileManager.default.fileExists(atPath: newURL.path) {
+                return newURL
+            }
+            counter += 1
+        }
+    }
 }
