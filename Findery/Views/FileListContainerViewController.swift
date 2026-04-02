@@ -70,15 +70,16 @@ final class FileListContainerViewController: NSViewController {
         makeNavButton(upButton, symbol: "chevron.up", action: #selector(upTapped), tooltip: "상위 폴더 (⌘↑)")
         upButton.isEnabled = true
 
-        // 숨김파일 토글 버튼
+        // 숨김파일 토글 버튼 (.* 텍스트)
         hiddenToggle.translatesAutoresizingMaskIntoConstraints = false
         hiddenToggle.bezelStyle = .accessoryBarAction
         hiddenToggle.isBordered = true
-        hiddenToggle.image = NSImage(systemSymbolName: "eye.slash", accessibilityDescription: "숨김파일 표시")
-        hiddenToggle.imageScaling = .scaleProportionallyDown
+        hiddenToggle.title = ".*"
+        hiddenToggle.font = NSFont.monospacedSystemFont(ofSize: 11, weight: .bold)
         hiddenToggle.target = self
         hiddenToggle.action = #selector(toggleHiddenFiles)
         hiddenToggle.toolTip = "숨김파일 표시/숨기기 (⌘⇧.)"
+        hiddenToggle.contentTintColor = .secondaryLabelColor
         view.addSubview(hiddenToggle)
 
         addressBar.translatesAutoresizingMaskIntoConstraints = false
@@ -121,11 +122,7 @@ final class FileListContainerViewController: NSViewController {
     }
     @objc func toggleHiddenFiles() {
         showHiddenFiles.toggle()
-        hiddenToggle.image = NSImage(
-            systemSymbolName: showHiddenFiles ? "eye" : "eye.slash",
-            accessibilityDescription: "숨김파일"
-        )
-        hiddenToggle.contentTintColor = showHiddenFiles ? .controlAccentColor : nil
+        hiddenToggle.contentTintColor = showHiddenFiles ? .controlAccentColor : .secondaryLabelColor
         NotificationCenter.default.post(name: .finderyToggleHidden, object: showHiddenFiles)
     }
 
@@ -352,7 +349,14 @@ extension FileListContainerViewController: NSTableViewDelegate {
         }
 
         let isCut = cutURLs.contains(node.url)
-        cell.alphaValue = isCut ? 0.4 : 1.0
+        let isHidden = node.name.hasPrefix(".")
+        if isCut {
+            cell.alphaValue = 0.4
+        } else if isHidden {
+            cell.alphaValue = 0.5
+        } else {
+            cell.alphaValue = 1.0
+        }
 
         return cell
     }

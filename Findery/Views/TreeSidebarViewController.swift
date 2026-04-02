@@ -138,6 +138,7 @@ extension TreeSidebarViewController: NSOutlineViewDelegate {
 
         cell.textField?.stringValue = node.name
         cell.imageView?.image = NSImage(systemSymbolName: "folder.fill", accessibilityDescription: "Folder")
+        cell.alphaValue = node.name.hasPrefix(".") ? 0.5 : 1.0
 
         return cell
     }
