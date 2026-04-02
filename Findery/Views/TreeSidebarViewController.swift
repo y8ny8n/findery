@@ -63,10 +63,11 @@ final class TreeSidebarViewController: NSViewController {
 
     private func buildSections() {
         let mgr = FavoritesManager.shared
+        let home = FileSystemController.homeDirectory
 
         let favoriteItems = mgr.favorites.map { url in
             SidebarItem(
-                name: url.path == FileSystemController.homeDirectory.path ? "홈" : url.lastPathComponent,
+                name: url.lastPathComponent,
                 url: url,
                 icon: FavoritesManager.icon(for: url),
                 isFavorite: true
@@ -74,17 +75,21 @@ final class TreeSidebarViewController: NSViewController {
         }
         let favorites = SidebarSection(title: "즐겨찾기", items: favoriteItems)
 
-        // 위치
+        // 위치: 홈 디렉토리 + 외장 볼륨 (Macintosh HD 제외)
         let volumes = (try? FileManager.default.contentsOfDirectory(
             at: URL(fileURLWithPath: "/Volumes"),
             includingPropertiesForKeys: [.isVolumeKey],
             options: [.skipsHiddenFiles]
         )) ?? []
 
-        var locationItems = volumes.map { vol in
-            SidebarItem(name: vol.lastPathComponent, url: vol, icon: "externaldrive.fill", isFavorite: false)
+        var locationItems = [
+            SidebarItem(name: home.lastPathComponent, url: home, icon: "person.fill", isFavorite: false)
+        ]
+        for vol in volumes {
+            // Macintosh HD (루트 볼륨) 제외
+            if vol.lastPathComponent == "Macintosh HD" { continue }
+            locationItems.append(SidebarItem(name: vol.lastPathComponent, url: vol, icon: "externaldrive.fill", isFavorite: false))
         }
-        locationItems.insert(SidebarItem(name: "Macintosh HD", url: URL(fileURLWithPath: "/"), icon: "internaldrive.fill", isFavorite: false), at: 0)
 
         let locations = SidebarSection(title: "위치", items: locationItems)
 

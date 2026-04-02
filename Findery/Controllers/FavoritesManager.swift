@@ -69,7 +69,7 @@ final class FavoritesManager {
         case "Movies": return "film.fill"
         default:
             if url.path == FileSystemController.homeDirectory.path {
-                return "house.fill"
+                return "person.fill"
             }
             return "folder.fill"
         }
