@@ -63,11 +63,40 @@ macOS 네이티브 파일 관리자. Windows Explorer 스타일의 주소창과 
 - FSEvents (실시간 파일 감시)
 - QLPreviewPanel (Quick Look)
 
-## 빌드
+## 설치 (DMG / ZIP)
+
+[최신 릴리즈 다운로드](https://github.com/y8ny8n/findery/releases/latest)
+
+1. `.dmg` 또는 `.zip` 다운로드
+2. DMG: 열고 Findery.app을 **Applications 폴더로 드래그**
+3. ZIP: 압축 해제 후 Findery.app을 **Applications 폴더로 이동**
+
+### 첫 실행 (미서명 앱 허용)
+
+Apple Developer ID로 서명되지 않은 앱이라 첫 실행 시 Gatekeeper가 차단합니다.
+
+**방법 1: 시스템 설정 (권장)**
+1. Findery.app 더블클릭 → 경고 뜨면 **취소**
+2. **시스템 설정 > 개인정보 보호 및 보안** 열기
+3. 아래쪽 `"Findery"이(가) 차단되었습니다` → **그래도 열기** 클릭
+4. 비밀번호 입력 → 이후 정상 실행
+
+**방법 2: 터미널**
+```bash
+xattr -cr /Applications/Findery.app
+```
+
+### 파일 접근 권한
+
+첫 실행 시 Desktop, Documents, Downloads 접근 권한을 물어봅니다.
+**허용**을 누르면 해당 폴더는 이후 다시 묻지 않습니다.
+
+## 소스에서 빌드
 
 ```bash
 # XcodeGen 필요
 brew install xcodegen
+git clone https://github.com/y8ny8n/findery.git
 cd findery
 xcodegen generate
 open Findery.xcodeproj
