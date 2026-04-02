@@ -684,12 +684,12 @@ extension FileListContainerViewController: QLPreviewPanelDataSource, QLPreviewPa
             toggleQuickLook()
         } else if event.keyCode == 36 { // Enter/Return
             openSelectedItem()
-        } else if event.keyCode == 51 && flags == .command {
-            // ⌘+Delete → 휴지통
-            NotificationCenter.default.post(name: .finderyMoveToTrash, object: nil)
-        } else if event.keyCode == 51 && flags == [] {
-            // Delete만 → 뒤로가기
+        } else if event.keyCode == 51 && (flags == [] || flags == .command) {
+            // Backspace (⌘ 있든 없든) → 뒤로가기
             NotificationCenter.default.post(name: .finderyGoBack, object: nil)
+        } else if event.keyCode == 117 {
+            // Forward Delete (fn+Delete) → 휴지통
+            NotificationCenter.default.post(name: .finderyMoveToTrash, object: nil)
         } else {
             super.keyDown(with: event)
         }
