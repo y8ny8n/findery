@@ -126,9 +126,24 @@ final class FileListContainerViewController: NSViewController {
 
         textField.isEditable = true
         textField.isSelectable = true
+        textField.isBordered = true
+        textField.isBezeled = true
+        textField.bezelStyle = .roundedBezel
+        textField.drawsBackground = true
         textField.delegate = self
-        view.window?.makeFirstResponder(textField)
-        textField.selectText(nil)
+        textField.window?.makeFirstResponder(textField)
+
+        // Select filename without extension
+        let name = textField.stringValue
+        if let dotRange = name.range(of: ".", options: .backwards),
+           dotRange.lowerBound != name.startIndex {
+            let editor = textField.currentEditor()
+            let nsName = name as NSString
+            let selectLength = nsName.range(of: ".", options: .backwards).location
+            editor?.selectedRange = NSRange(location: 0, length: selectLength)
+        } else {
+            textField.selectText(nil)
+        }
     }
 
     @objc private func doubleClickRow() {
@@ -281,8 +296,12 @@ extension FileListContainerViewController: NSTextFieldDelegate {
         let node = files[row]
         let newName = textField.stringValue.trimmingCharacters(in: .whitespaces)
 
+        // Restore label style
         textField.isEditable = false
         textField.isSelectable = false
+        textField.isBordered = false
+        textField.isBezeled = false
+        textField.drawsBackground = false
         renamingRow = nil
 
         guard !newName.isEmpty, newName != node.name else {

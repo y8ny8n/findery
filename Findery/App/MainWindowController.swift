@@ -81,7 +81,7 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
 
         // File menu
         let fileMenu = NSMenu(title: "File")
-        fileMenu.addItem(item("새 폴더", action: #selector(newFolderAction), key: "N", modifiers: [.command, .shift]))
+        fileMenu.addItem(item("새 폴더", action: #selector(newFolderAction), key: "n", modifiers: [.command, .shift]))
         fileMenu.addItem(NSMenuItem.separator())
         fileMenu.addItem(withTitle: "닫기", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
 
