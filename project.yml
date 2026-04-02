@@ -1,0 +1,39 @@
+name: Findery
+options:
+  bundleIdPrefix: com.findery
+  deploymentTarget:
+    macOS: "13.0"
+  xcodeVersion: "16.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
+
+targets:
+  Findery:
+    type: application
+    platform: macOS
+    sources:
+      - Findery
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.findery.app
+        PRODUCT_NAME: Findery
+        INFOPLIST_FILE: Findery/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Findery/Resources/Findery.entitlements
+        COMBINE_HIDPI_IMAGES: true
+    entitlements:
+      path: Findery/Resources/Findery.entitlements
+
+  FinderyTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - FinderyTests
+    dependencies:
+      - target: Findery
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.findery.tests
