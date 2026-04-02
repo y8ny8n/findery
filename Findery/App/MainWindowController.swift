@@ -249,14 +249,48 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
                 openItem.target = self
                 openItem.representedObject = url
                 menu.addItem(openItem)
-                menu.addItem(NSMenuItem.separator())
             } else {
                 let openItem = NSMenuItem(title: "열기", action: #selector(contextOpenFile(_:)), keyEquivalent: "")
                 openItem.target = self
                 openItem.representedObject = url
                 menu.addItem(openItem)
-                menu.addItem(NSMenuItem.separator())
             }
+
+            // "다음으로 열기" 서브메뉴
+            let openWithItem = NSMenuItem(title: "다음으로 열기", action: nil, keyEquivalent: "")
+            let openWithMenu = NSMenu(title: "Open With")
+            let appURLs = NSWorkspace.shared.urlsForApplications(toOpen: url)
+            for appURL in appURLs.prefix(15) {
+                let appName = appURL.deletingPathExtension().lastPathComponent
+                let appItem = NSMenuItem(title: appName, action: #selector(contextOpenWith(_:)), keyEquivalent: "")
+                appItem.target = self
+                appItem.representedObject = ["file": url, "app": appURL]
+                appItem.image = NSWorkspace.shared.icon(forFile: appURL.path)
+                appItem.image?.size = NSSize(width: 16, height: 16)
+                openWithMenu.addItem(appItem)
+            }
+            openWithItem.submenu = openWithMenu
+            menu.addItem(openWithItem)
+            menu.addItem(NSMenuItem.separator())
+        }
+
+        // 여러 파일 선택 시에도 "다음으로 열기" 제공
+        if urls.count > 1 {
+            let openWithItem = NSMenuItem(title: "다음으로 열기", action: nil, keyEquivalent: "")
+            let openWithMenu = NSMenu(title: "Open With")
+            let appURLs = NSWorkspace.shared.urlsForApplications(toOpen: urls[0])
+            for appURL in appURLs.prefix(15) {
+                let appName = appURL.deletingPathExtension().lastPathComponent
+                let appItem = NSMenuItem(title: appName, action: #selector(contextOpenWithMulti(_:)), keyEquivalent: "")
+                appItem.target = self
+                appItem.representedObject = ["files": urls, "app": appURL]
+                appItem.image = NSWorkspace.shared.icon(forFile: appURL.path)
+                appItem.image?.size = NSSize(width: 16, height: 16)
+                openWithMenu.addItem(appItem)
+            }
+            openWithItem.submenu = openWithMenu
+            menu.addItem(openWithItem)
+            menu.addItem(NSMenuItem.separator())
         }
 
         menu.addItem(withTitle: "복사", action: #selector(copyAction), keyEquivalent: "").target = self
@@ -511,6 +545,20 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
     @objc private func contextGetInfo(_ sender: NSMenuItem) {
         guard let url = sender.representedObject as? URL else { return }
         NSWorkspace.shared.activateFileViewerSelecting([url])
+    }
+
+    @objc private func contextOpenWith(_ sender: NSMenuItem) {
+        guard let info = sender.representedObject as? [String: Any],
+              let fileURL = info["file"] as? URL,
+              let appURL = info["app"] as? URL else { return }
+        NSWorkspace.shared.open([fileURL], withApplicationAt: appURL, configuration: NSWorkspace.OpenConfiguration())
+    }
+
+    @objc private func contextOpenWithMulti(_ sender: NSMenuItem) {
+        guard let info = sender.representedObject as? [String: Any],
+              let fileURLs = info["files"] as? [URL],
+              let appURL = info["app"] as? URL else { return }
+        NSWorkspace.shared.open(fileURLs, withApplicationAt: appURL, configuration: NSWorkspace.OpenConfiguration())
     }
 
     @objc private func refreshAction() {
