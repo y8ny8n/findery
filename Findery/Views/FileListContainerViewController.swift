@@ -6,7 +6,9 @@ final class FileListContainerViewController: NSViewController {
     private let backButton = NSButton()
     private let forwardButton = NSButton()
     private let upButton = NSButton()
+    private let hiddenToggle = NSButton()
     private let addressBar = AddressBarView()
+    private(set) var showHiddenFiles = false
     private let tableView = NSTableView()
     private let scrollView = NSScrollView()
     private let statusBar = StatusBarView()
@@ -68,6 +70,17 @@ final class FileListContainerViewController: NSViewController {
         makeNavButton(upButton, symbol: "chevron.up", action: #selector(upTapped), tooltip: "상위 폴더 (⌘↑)")
         upButton.isEnabled = true
 
+        // 숨김파일 토글 버튼
+        hiddenToggle.translatesAutoresizingMaskIntoConstraints = false
+        hiddenToggle.bezelStyle = .accessoryBarAction
+        hiddenToggle.isBordered = true
+        hiddenToggle.image = NSImage(systemSymbolName: "eye.slash", accessibilityDescription: "숨김파일 표시")
+        hiddenToggle.imageScaling = .scaleProportionallyDown
+        hiddenToggle.target = self
+        hiddenToggle.action = #selector(toggleHiddenFiles)
+        hiddenToggle.toolTip = "숨김파일 표시/숨기기 (⌘⇧.)"
+        view.addSubview(hiddenToggle)
+
         addressBar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(addressBar)
 
@@ -83,8 +96,13 @@ final class FileListContainerViewController: NSViewController {
 
             addressBar.topAnchor.constraint(equalTo: view.topAnchor, constant: 8),
             addressBar.leadingAnchor.constraint(equalTo: upButton.trailingAnchor, constant: 8),
-            addressBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
+            addressBar.trailingAnchor.constraint(equalTo: hiddenToggle.leadingAnchor, constant: -8),
             addressBar.heightAnchor.constraint(equalToConstant: 28),
+
+            hiddenToggle.topAnchor.constraint(equalTo: view.topAnchor, constant: 8),
+            hiddenToggle.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
+            hiddenToggle.widthAnchor.constraint(equalToConstant: 28),
+            hiddenToggle.heightAnchor.constraint(equalToConstant: 28),
         ])
 
         addressBar.onNavigate = { [weak self] url in
@@ -100,6 +118,15 @@ final class FileListContainerViewController: NSViewController {
     }
     @objc private func upTapped() {
         NotificationCenter.default.post(name: .finderyGoUp, object: nil)
+    }
+    @objc func toggleHiddenFiles() {
+        showHiddenFiles.toggle()
+        hiddenToggle.image = NSImage(
+            systemSymbolName: showHiddenFiles ? "eye" : "eye.slash",
+            accessibilityDescription: "숨김파일"
+        )
+        hiddenToggle.contentTintColor = showHiddenFiles ? .controlAccentColor : nil
+        NotificationCenter.default.post(name: .finderyToggleHidden, object: showHiddenFiles)
     }
 
     private func setupTableView() {

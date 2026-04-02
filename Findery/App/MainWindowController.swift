@@ -162,6 +162,7 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         // View menu
         let viewMenu = NSMenu(title: "View")
         viewMenu.addItem(item("새로고침", action: #selector(refreshAction), key: "r"))
+        viewMenu.addItem(item("숨김파일 표시/숨기기", action: #selector(toggleHiddenAction), key: ".", modifiers: [.command, .shift]))
         let viewMenuItem = NSMenuItem(title: "View", action: nil, keyEquivalent: "")
         viewMenuItem.submenu = viewMenu
         mainMenu.addItem(viewMenuItem)
@@ -175,6 +176,19 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         nc.addObserver(self, selector: #selector(handleFileCopy(_:)), name: .finderyCopy, object: nil)
         nc.addObserver(self, selector: #selector(handleFileCut(_:)), name: .finderyCut, object: nil)
         nc.addObserver(self, selector: #selector(handleFilePaste), name: .finderyPaste, object: nil)
+        nc.addObserver(self, selector: #selector(handleToggleHidden(_:)), name: .finderyToggleHidden, object: nil)
+    }
+
+    @objc private func toggleHiddenAction() {
+        fileListContainerVC.toggleHiddenFiles()
+    }
+
+    @objc private func handleToggleHidden(_ notification: Notification) {
+        guard let show = notification.object as? Bool else { return }
+        fileSystemController.showHiddenFiles = show
+        TreeNode.showHiddenFiles = show
+        treeSidebarVC.reloadTree()
+        refreshCurrentDirectory()
     }
 
     @objc private func handleFileCopy(_ notification: Notification) {

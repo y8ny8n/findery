@@ -6,16 +6,20 @@ final class FileSystemController {
         FileManager.default.homeDirectoryForCurrentUser
     }
 
+    var showHiddenFiles = false
+
     func enumerate(directory url: URL) async -> [FileNode] {
-        await withCheckedContinuation { continuation in
+        let showHidden = showHiddenFiles
+        return await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
-                let items = self.enumerateSync(directory: url)
+                let items = self.enumerateSync(directory: url, showHidden: showHidden)
                 continuation.resume(returning: items)
             }
         }
     }
 
-    private func enumerateSync(directory url: URL) -> [FileNode] {
+    private func enumerateSync(directory url: URL, showHidden: Bool) -> [FileNode] {
+        let options: FileManager.DirectoryEnumerationOptions = showHidden ? [] : [.skipsHiddenFiles]
         guard let contents = try? FileManager.default.contentsOfDirectory(
             at: url,
             includingPropertiesForKeys: [
@@ -25,7 +29,7 @@ final class FileSystemController {
                 .contentModificationDateKey,
                 .localizedTypeDescriptionKey
             ],
-            options: [.skipsHiddenFiles]
+            options: options
         ) else {
             return []
         }

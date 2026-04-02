@@ -57,6 +57,11 @@ final class TreeSidebarViewController: NSViewController {
         outlineView.expandItem(rootNode)
     }
 
+    func reloadTree() {
+        rootNodes = []
+        loadRootNodes()
+    }
+
     func selectDirectory(_ url: URL) {
         suppressSelectionCallback = true
         defer { suppressSelectionCallback = false }
@@ -155,6 +160,8 @@ extension TreeSidebarViewController: NSOutlineViewDelegate {
 
 // MARK: - TreeNode
 final class TreeNode {
+    static var showHiddenFiles = false
+
     let url: URL
     let name: String
     var children: [TreeNode] = []
@@ -165,11 +172,12 @@ final class TreeNode {
         self.url = url
         self.name = url.lastPathComponent
 
+        let options: FileManager.DirectoryEnumerationOptions = TreeNode.showHiddenFiles ? [] : [.skipsHiddenFiles]
         let hasSubdirectories: Bool
         if let contents = try? FileManager.default.contentsOfDirectory(
             at: url,
             includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
+            options: options
         ) {
             hasSubdirectories = contents.contains { url in
                 (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
@@ -184,10 +192,11 @@ final class TreeNode {
         guard !childrenLoaded else { return }
         childrenLoaded = true
 
+        let options: FileManager.DirectoryEnumerationOptions = TreeNode.showHiddenFiles ? [] : [.skipsHiddenFiles]
         guard let contents = try? FileManager.default.contentsOfDirectory(
             at: url,
             includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
+            options: options
         ) else { return }
 
         children = contents
