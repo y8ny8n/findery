@@ -16,6 +16,12 @@ final class FileListContainerViewController: NSViewController {
     var onNavigate: ((URL) -> Void)?
     var contextMenuProvider: (([URL]) -> NSMenu)?
     var onRenameComplete: ((URL, URL) -> Void)?
+    private var cutURLs: Set<URL> = []
+
+    func setCutURLs(_ urls: Set<URL>) {
+        cutURLs = urls
+        tableView.reloadData()
+    }
 
     enum SortKey: String {
         case name, size, date, kind
@@ -234,6 +240,9 @@ extension FileListContainerViewController: NSTableViewDelegate {
         default:
             break
         }
+
+        let isCut = cutURLs.contains(node.url)
+        cell.alphaValue = isCut ? 0.4 : 1.0
 
         return cell
     }

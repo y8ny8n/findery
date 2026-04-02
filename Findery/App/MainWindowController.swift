@@ -15,6 +15,7 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
     private var currentURL: URL?
     private var clipboardURLs: [URL] = []
     private var clipboardIsCut = false
+    private var clipboardSourceDir: URL?
     private var undoStack: [UndoableAction] = []
 
     enum UndoableAction {
@@ -66,6 +67,9 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         window?.contentViewController = splitViewController
 
         treeSidebarVC.delegate = self
+        treeSidebarVC.onGoBack = { [weak self] in self?.goBackAction() }
+        treeSidebarVC.onGoForward = { [weak self] in self?.goForwardAction() }
+        treeSidebarVC.onGoUp = { [weak self] in self?.goUpAction() }
 
         fileListContainerVC.onNavigate = { [weak self] url in
             self?.navigateTo(url)
@@ -242,7 +246,15 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
             fileListContainerVC.updateFiles(items, iconCache: iconCache)
             fileListContainerVC.updateAddressBar(url)
             treeSidebarVC.selectDirectory(url)
+            updateNavButtonStates()
         }
+    }
+
+    private func updateNavButtonStates() {
+        treeSidebarVC.updateNavButtons(
+            canGoBack: navigationController.state.canGoBack,
+            canGoForward: navigationController.state.canGoForward
+        )
     }
 
     private func refreshCurrentDirectory() {
@@ -278,6 +290,7 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
             fileListContainerVC.updateFiles(items, iconCache: iconCache)
             fileListContainerVC.updateAddressBar(url)
             treeSidebarVC.selectDirectory(url)
+            updateNavButtonStates()
         }
     }
 
@@ -367,17 +380,26 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         guard !urls.isEmpty else { return }
         clipboardURLs = urls
         clipboardIsCut = true
+        clipboardSourceDir = currentURL
         fileOperations.copyToClipboard(urls: urls)
+        fileListContainerVC.setCutURLs(Set(urls))
     }
 
     @objc private func pasteAction() {
         guard let destination = currentURL, !clipboardURLs.isEmpty else { return }
+        let sourceDir = clipboardSourceDir
         do {
             if clipboardIsCut {
                 let pairs = try fileOperations.moveFilesWithUndo(clipboardURLs, to: destination)
                 undoStack.append(.move(from: pairs))
                 clipboardURLs = []
                 clipboardIsCut = false
+                fileListContainerVC.setCutURLs([])
+                // 원래 폴더가 현재 폴더와 다르면 현재 폴더 리프레시
+                // 원래 폴더가 현재 폴더면 FSEvents가 잡아줌
+                if sourceDir != destination {
+                    refreshCurrentDirectory()
+                }
             } else {
                 let created = try fileOperations.copyFilesWithUndo(clipboardURLs, to: destination)
                 undoStack.append(.copy(created: created))
