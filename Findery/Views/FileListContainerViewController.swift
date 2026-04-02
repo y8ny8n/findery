@@ -178,20 +178,6 @@ final class FileListContainerViewController: NSViewController {
         addressBar.setPath(url)
     }
 
-    func selectAndRename(url: URL) {
-        // 테이블 렌더링 완료 후 실행
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            guard let self else { return }
-            guard let row = self.files.firstIndex(where: { $0.url == url }) else { return }
-            self.tableView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
-            self.tableView.scrollRowToVisible(row)
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-                self?.startRenaming()
-            }
-        }
-    }
-
     func animateRemovalOfSelected(completion: @escaping () -> Void) {
         let selectedRows = tableView.selectedRowIndexes
         guard !selectedRows.isEmpty else {
