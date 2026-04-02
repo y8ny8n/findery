@@ -174,6 +174,7 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         // View menu
         let viewMenu = NSMenu(title: "View")
         viewMenu.addItem(item("새로고침", action: #selector(refreshAction), key: "r"))
+        viewMenu.addItem(item("검색", action: #selector(focusSearchAction), key: "f"))
         viewMenu.addItem(item("숨김파일 표시/숨기기", action: #selector(toggleHiddenAction), key: ".", modifiers: [.command, .shift]))
         let viewMenuItem = NSMenuItem(title: "View", action: nil, keyEquivalent: "")
         viewMenuItem.submenu = viewMenu
@@ -646,6 +647,10 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
     @objc private func contextRemoveFavorite(_ sender: NSMenuItem) {
         guard let url = sender.representedObject as? URL else { return }
         FavoritesManager.shared.remove(url: url)
+    }
+
+    @objc private func focusSearchAction() {
+        fileListContainerVC.focusSearch()
     }
 
     @objc private func refreshAction() {

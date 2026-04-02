@@ -35,12 +35,14 @@ final class FileListContainerViewController: NSViewController {
     private let favoriteButton = NSButton()
     private let hiddenToggle = NSButton()
     private let addressBar = AddressBarView()
+    private let searchField = NSSearchField()
     private(set) var showHiddenFiles = false
     private var currentURL: URL?
     private let tableView = ServicesTableView()
     private let scrollView = NSScrollView()
     private let statusBar = StatusBarView()
 
+    private var allFiles: [FileNode] = []
     private var files: [FileNode] = []
     private var iconCache: IconCache?
     private var sortKey: SortKey = .name
@@ -71,6 +73,7 @@ final class FileListContainerViewController: NSViewController {
     override func loadView() {
         view = NSView()
         setupNavAndAddressBar()
+        setupSearchBar()
         setupTableView()
         setupStatusBar()
     }
@@ -189,6 +192,39 @@ final class FileListContainerViewController: NSViewController {
         NotificationCenter.default.post(name: .finderyToggleHidden, object: showHiddenFiles)
     }
 
+    private func setupSearchBar() {
+        searchField.translatesAutoresizingMaskIntoConstraints = false
+        searchField.placeholderString = "검색 (⌘F)"
+        searchField.font = NSFont.systemFont(ofSize: 12)
+        searchField.target = self
+        searchField.action = #selector(searchChanged)
+        searchField.sendsSearchStringImmediately = true
+        searchField.sendsWholeSearchString = false
+        view.addSubview(searchField)
+
+        NSLayoutConstraint.activate([
+            searchField.topAnchor.constraint(equalTo: addressBar.bottomAnchor, constant: 6),
+            searchField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
+            searchField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
+            searchField.heightAnchor.constraint(equalToConstant: 22),
+        ])
+    }
+
+    @objc private func searchChanged() {
+        let query = searchField.stringValue.lowercased()
+        if query.isEmpty {
+            files = allFiles
+        } else {
+            files = allFiles.filter { $0.name.lowercased().contains(query) }
+        }
+        tableView.reloadData()
+        statusBar.update(itemCount: files.count, totalSize: files.reduce(0) { $0 + $1.size })
+    }
+
+    func focusSearch() {
+        view.window?.makeFirstResponder(searchField)
+    }
+
     private func setupTableView() {
         let columns: [(String, String, CGFloat)] = [
             ("Name", "이름", 300),
@@ -218,6 +254,10 @@ final class FileListContainerViewController: NSViewController {
             self?.selectedFileURLs ?? []
         }
 
+        // 드래그 앤 드롭
+        tableView.registerForDraggedTypes([.fileURL])
+        tableView.setDraggingSourceOperationMask([.copy, .move], forLocal: false)
+
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.documentView = tableView
         scrollView.hasVerticalScroller = true
@@ -225,7 +265,7 @@ final class FileListContainerViewController: NSViewController {
         view.addSubview(scrollView)
 
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: addressBar.bottomAnchor, constant: 8),
+            scrollView.topAnchor.constraint(equalTo: searchField.bottomAnchor, constant: 4),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         ])
@@ -249,8 +289,12 @@ final class FileListContainerViewController: NSViewController {
             row < files.count ? files[row].url : nil
         })
 
-        self.files = items
+        self.allFiles = items
         self.iconCache = iconCache
+
+        // 검색 필터 유지
+        let query = searchField.stringValue.lowercased()
+        self.files = query.isEmpty ? items : items.filter { $0.name.lowercased().contains(query) }
         tableView.reloadData()
         statusBar.update(itemCount: items.count, totalSize: items.reduce(0) { $0 + $1.size })
 
@@ -347,6 +391,56 @@ final class FileListContainerViewController: NSViewController {
 extension FileListContainerViewController: NSTableViewDataSource {
     func numberOfRows(in tableView: NSTableView) -> Int {
         files.count
+    }
+
+    // MARK: - Drag & Drop
+
+    func tableView(_ tableView: NSTableView, pasteboardWriterForRow row: Int) -> (any NSPasteboardWriting)? {
+        guard row < files.count else { return nil }
+        return files[row].url as NSURL
+    }
+
+    func tableView(_ tableView: NSTableView, validateDrop info: any NSDraggingInfo, proposedRow row: Int, proposedDropOperation dropOperation: NSTableView.DropOperation) -> NSDragOperation {
+        if dropOperation == .on { return [] }
+        guard info.draggingPasteboard.canReadObject(forClasses: [NSURL.self], options: nil) else { return [] }
+        if info.draggingSourceOperationMask.contains(.move) {
+            return .move
+        }
+        return .copy
+    }
+
+    func tableView(_ tableView: NSTableView, acceptDrop info: any NSDraggingInfo, row: Int, dropOperation: NSTableView.DropOperation) -> Bool {
+        guard let urls = info.draggingPasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL],
+              !urls.isEmpty,
+              let destination = currentURL else { return false }
+
+        let isMove = info.draggingSourceOperationMask.contains(.move)
+        do {
+            if isMove {
+                try FileOperations().moveFiles(urls, to: destination)
+            } else {
+                try FileOperations().copyFiles(urls, to: destination)
+            }
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    func tableView(_ tableView: NSTableView, sortDescriptorsDidChange oldDescriptors: [NSSortDescriptor]) {
+        guard let sort = tableView.sortDescriptors.first, let key = sort.key else { return }
+        files.sort { a, b in
+            let result: ComparisonResult
+            switch key {
+            case "Name": result = a.name.localizedStandardCompare(b.name)
+            case "Size": result = a.size < b.size ? .orderedAscending : (a.size > b.size ? .orderedDescending : .orderedSame)
+            case "Date": result = a.dateModified < b.dateModified ? .orderedAscending : (a.dateModified > b.dateModified ? .orderedDescending : .orderedSame)
+            case "Kind": result = a.kind.localizedStandardCompare(b.kind)
+            default: result = .orderedSame
+            }
+            return sort.ascending ? result == .orderedAscending : result == .orderedDescending
+        }
+        tableView.reloadData()
     }
 }
 
