@@ -88,6 +88,7 @@ final class AddressBarView: NSView, NSTextFieldDelegate {
         if commandSelector == #selector(NSResponder.moveDown(_:)) {
             if let panel = suggestionsPanel, panel.isVisible {
                 panel.selectNext()
+                fillFromSelection()
             } else {
                 updateSuggestions()
             }
@@ -95,6 +96,7 @@ final class AddressBarView: NSView, NSTextFieldDelegate {
         }
         if commandSelector == #selector(NSResponder.moveUp(_:)) {
             suggestionsPanel?.selectPrevious()
+            fillFromSelection()
             return true
         }
         if commandSelector == #selector(NSResponder.insertTab(_:)) {
@@ -110,6 +112,13 @@ final class AddressBarView: NSView, NSTextFieldDelegate {
             return true
         }
         return false
+    }
+
+    private func fillFromSelection() {
+        if let selected = suggestionsPanel?.selectedSuggestion {
+            textField.stringValue = selected
+            textField.currentEditor()?.moveToEndOfLine(nil)
+        }
     }
 
     // MARK: - Suggestions
@@ -138,6 +147,11 @@ final class AddressBarView: NSView, NSTextFieldDelegate {
         if suggestionsPanel == nil {
             suggestionsPanel = SuggestionsPanel()
             suggestionsPanel?.onSelect = { [weak self] path in
+                guard let self else { return }
+                self.textField.stringValue = path
+                self.textField.currentEditor()?.moveToEndOfLine(nil)
+            }
+            suggestionsPanel?.onConfirm = { [weak self] path in
                 guard let self else { return }
                 self.textField.stringValue = path
                 self.textField.currentEditor()?.moveToEndOfLine(nil)
@@ -237,7 +251,8 @@ private final class SuggestionsPanel: NSObject {
     private let scrollView = NSScrollView()
     private var suggestions: [String] = []
 
-    var onSelect: ((String) -> Void)?
+    var onSelect: ((String) -> Void)?   // 싱글클릭/화살표 — 텍스트만 교체
+    var onConfirm: ((String) -> Void)?  // 더블클릭 — 텍스트 교체 + 드롭다운 닫기
 
     var firstSuggestion: String? { suggestions.first }
     var isVisible: Bool { panel.isVisible }
@@ -326,7 +341,7 @@ private final class SuggestionsPanel: NSObject {
     @objc private func rowDoubleClicked() {
         let row = tableView.clickedRow
         guard row >= 0, row < suggestions.count else { return }
-        onSelect?(suggestions[row])
+        onConfirm?(suggestions[row])
     }
 }
 
@@ -379,5 +394,10 @@ extension SuggestionsPanel: NSTableViewDelegate {
                                          accessibilityDescription: isDir ? "Folder" : "File")
 
         return cell
+    }
+
+    func tableViewSelectionDidChange(_ notification: Notification) {
+        guard let selected = selectedSuggestion else { return }
+        onSelect?(selected)
     }
 }
