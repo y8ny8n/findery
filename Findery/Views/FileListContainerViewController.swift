@@ -1,6 +1,32 @@
 import AppKit
 import QuickLookUI
 
+// MARK: - Services-aware TableView
+
+private final class ServicesTableView: NSTableView {
+
+    var fileURLsProvider: (() -> [URL])?
+
+    override func validRequestor(forSendType sendType: NSPasteboard.PasteboardType?, returnType: NSPasteboard.PasteboardType?) -> Any? {
+        let validSend = sendType == nil || sendType == .fileURL || sendType == .string
+        let validReturn = returnType == nil
+        if validSend && validReturn {
+            if let urls = fileURLsProvider?(), !urls.isEmpty {
+                return self
+            }
+        }
+        return super.validRequestor(forSendType: sendType, returnType: returnType)
+    }
+
+    @objc func writeSelection(to pboard: NSPasteboard, types: [NSPasteboard.PasteboardType]) -> Bool {
+        guard let urls = fileURLsProvider?(), !urls.isEmpty else { return false }
+        pboard.clearContents()
+        pboard.writeObjects(urls as [NSURL])
+        pboard.setString(urls.map(\.path).joined(separator: "\n"), forType: .string)
+        return true
+    }
+}
+
 final class FileListContainerViewController: NSViewController {
 
     private let backButton = NSButton()
@@ -9,7 +35,7 @@ final class FileListContainerViewController: NSViewController {
     private let hiddenToggle = NSButton()
     private let addressBar = AddressBarView()
     private(set) var showHiddenFiles = false
-    private let tableView = NSTableView()
+    private let tableView = ServicesTableView()
     private let scrollView = NSScrollView()
     private let statusBar = StatusBarView()
 
@@ -151,6 +177,9 @@ final class FileListContainerViewController: NSViewController {
         tableView.style = .fullWidth
         tableView.menu = NSMenu()
         tableView.menu?.delegate = self
+        tableView.fileURLsProvider = { [weak self] in
+            self?.selectedFileURLs ?? []
+        }
 
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.documentView = tableView
