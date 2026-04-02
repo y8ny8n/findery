@@ -94,6 +94,14 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         let appMenu = NSMenu(title: "Findery")
         appMenu.addItem(withTitle: "Findery에 관하여", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         appMenu.addItem(NSMenuItem.separator())
+
+        let servicesMenu = NSMenu(title: "Services")
+        let servicesItem = NSMenuItem(title: "서비스", action: nil, keyEquivalent: "")
+        servicesItem.submenu = servicesMenu
+        appMenu.addItem(servicesItem)
+        NSApp.servicesMenu = servicesMenu
+
+        appMenu.addItem(NSMenuItem.separator())
         appMenu.addItem(withTitle: "Findery 종료", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         let appMenuItem = NSMenuItem()
         appMenuItem.submenu = appMenu
@@ -259,6 +267,18 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
             infoItem.target = self
             infoItem.representedObject = url
             menu.addItem(infoItem)
+
+            menu.addItem(NSMenuItem.separator())
+            let servicesItem = NSMenuItem(title: "서비스", action: nil, keyEquivalent: "")
+            let servicesSubmenu = NSMenu(title: "Services")
+            servicesItem.submenu = servicesSubmenu
+            menu.addItem(servicesItem)
+
+            // 시스템 서비스 메뉴를 파일 URL로 채움
+            let pboard = NSPasteboard(name: .init("finderyServices"))
+            pboard.clearContents()
+            pboard.writeObjects(urls as [NSURL])
+            servicesSubmenu.update()
         }
 
         return menu
