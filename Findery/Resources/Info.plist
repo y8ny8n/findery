@@ -22,5 +22,12 @@
     <string>NSApplication</string>
     <key>NSMainNibFile</key>
     <string></string>
+    <key>NSSendFileTypes</key>
+    <array>
+        <string>public.item</string>
+        <string>public.data</string>
+        <string>public.folder</string>
+        <string>public.file-url</string>
+    </array>
 </dict>
 </plist>

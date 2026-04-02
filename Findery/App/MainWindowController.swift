@@ -289,18 +289,6 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
             infoItem.target = self
             infoItem.representedObject = url
             menu.addItem(infoItem)
-
-            menu.addItem(NSMenuItem.separator())
-            let servicesItem = NSMenuItem(title: "서비스", action: nil, keyEquivalent: "")
-            let servicesSubmenu = NSMenu(title: "Services")
-            servicesItem.submenu = servicesSubmenu
-            menu.addItem(servicesItem)
-
-            // 시스템 서비스 메뉴를 파일 URL로 채움
-            let pboard = NSPasteboard(name: .init("finderyServices"))
-            pboard.clearContents()
-            pboard.writeObjects(urls as [NSURL])
-            servicesSubmenu.update()
         }
 
         return menu
