@@ -45,17 +45,20 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         setupMenuShortcuts()
         setupFileWatcher()
 
-        // super.init 이후에 크기 설정 (시스템 복원 무시)
-        if let screen = NSScreen.main {
-            let screenFrame = screen.visibleFrame
-            let w: CGFloat = min(1200, screenFrame.width * 0.85)
-            let h: CGFloat = min(800, screenFrame.height * 0.85)
-            let x = screenFrame.origin.x + (screenFrame.width - w) / 2
-            let y = screenFrame.origin.y + (screenFrame.height - h) / 2
-            window.setFrame(NSRect(x: x, y: y, width: w, height: h), display: true)
-        } else {
-            window.setContentSize(NSSize(width: 1200, height: 800))
-            window.center()
+        // 이전 윈도우 크기/위치 복원 (없으면 기본 1200x800)
+        window.setFrameAutosaveName("FinderyMainWindow")
+        if !window.setFrameUsingName("FinderyMainWindow") {
+            if let screen = NSScreen.main {
+                let screenFrame = screen.visibleFrame
+                let w: CGFloat = min(1200, screenFrame.width * 0.85)
+                let h: CGFloat = min(800, screenFrame.height * 0.85)
+                let x = screenFrame.origin.x + (screenFrame.width - w) / 2
+                let y = screenFrame.origin.y + (screenFrame.height - h) / 2
+                window.setFrame(NSRect(x: x, y: y, width: w, height: h), display: true)
+            } else {
+                window.setContentSize(NSSize(width: 1200, height: 800))
+                window.center()
+            }
         }
         setupNotifications()
         navigateTo(FileSystemController.homeDirectory)
