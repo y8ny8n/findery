@@ -344,65 +344,75 @@ final class FileListContainerViewController: NSViewController {
     }
 
     private var renamingURL: URL?
-    private var renameTextField: NSTextField?
+    private var renamePanel: NSPanel?
+    private var renameField: NSTextField?
 
     func startRenaming() {
         guard let row = tableView.selectedRowIndexes.first,
-              row < files.count else { return }
+              row < files.count,
+              let parentWindow = view.window else { return }
         let node = files[row]
         renamingURL = node.url
 
+        // 셀 위치를 화면 좌표로 변환
         let nameColIndex = tableView.column(withIdentifier: NSUserInterfaceItemIdentifier("Name"))
-        guard nameColIndex >= 0,
-              let cellView = tableView.view(atColumn: nameColIndex, row: row, makeIfNecessary: true) as? NSTableCellView else { return }
+        guard nameColIndex >= 0 else { return }
+        let cellRect = tableView.frameOfCell(atColumn: nameColIndex, row: row)
+        let rectInWindow = tableView.convert(cellRect, to: nil)
+        let rectOnScreen = parentWindow.convertToScreen(rectInWindow)
 
-        // 기존 라벨 위에 편집 전용 텍스트필드를 올림
-        let imageWidth: CGFloat = 24
-        let editFrame = NSRect(
-            x: imageWidth,
-            y: 0,
-            width: cellView.bounds.width - imageWidth - 4,
-            height: cellView.bounds.height
+        // 패널 생성 (포커스 안 뺏는 방식이 아니라, 여기선 키 입력을 받아야 하므로 일반 패널)
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: cellRect.width, height: 24),
+            styleMask: [.titled, .fullSizeContentView],
+            backing: .buffered,
+            defer: true
         )
+        panel.isFloatingPanel = true
+        panel.titleVisibility = .hidden
+        panel.titlebarAppearsTransparent = true
+        panel.backgroundColor = .controlBackgroundColor
+        panel.hasShadow = true
+        panel.level = .popUpMenu
+        panel.setFrame(NSRect(x: rectOnScreen.origin.x + 24, y: rectOnScreen.origin.y - 2,
+                               width: cellRect.width - 28, height: 26), display: true)
 
-        let editField = NSTextField(frame: editFrame)
-        editField.stringValue = node.name
-        editField.font = NSFont.systemFont(ofSize: 13)
-        editField.isEditable = true
-        editField.isBezeled = true
-        editField.bezelStyle = .roundedBezel
-        editField.drawsBackground = true
-        editField.delegate = self
-        editField.tag = 999
-        cellView.addSubview(editField)
-        renameTextField = editField
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: cellRect.width - 28, height: 26))
+        field.stringValue = node.name
+        field.font = NSFont.systemFont(ofSize: 13)
+        field.isEditable = true
+        field.isBezeled = false
+        field.drawsBackground = false
+        field.focusRingType = .none
+        field.delegate = self
+        field.tag = 999
+        panel.contentView?.addSubview(field)
 
-        // 기존 라벨 숨기기
-        cellView.textField?.isHidden = true
+        renamePanel = panel
+        renameField = field
+        parentWindow.addChildWindow(panel, ordered: .above)
+        panel.makeKeyAndOrderFront(nil)
+        panel.makeFirstResponder(field)
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            editField.window?.makeFirstResponder(editField)
-            // 확장자 제외하고 선택
-            let name = node.name
-            if let dotIndex = name.lastIndex(of: "."), dotIndex != name.startIndex {
-                let length = name.distance(from: name.startIndex, to: dotIndex)
-                editField.currentEditor()?.selectedRange = NSRange(location: 0, length: length)
-            } else {
-                editField.selectText(nil)
-            }
+        // 확장자 제외 선택
+        let name = node.name
+        if let dotIndex = name.lastIndex(of: "."), dotIndex != name.startIndex {
+            let length = name.distance(from: name.startIndex, to: dotIndex)
+            field.currentEditor()?.selectedRange = NSRange(location: 0, length: length)
+        } else {
+            field.selectText(nil)
         }
     }
 
-    private func cleanupRenameField() {
-        if let field = renameTextField {
-            // 부모 셀의 라벨 다시 표시
-            if let cellView = field.superview as? NSTableCellView {
-                cellView.textField?.isHidden = false
-            }
-            field.removeFromSuperview()
-            renameTextField = nil
+    private func cleanupRenamePanel() {
+        if let panel = renamePanel {
+            panel.parent?.removeChildWindow(panel)
+            panel.orderOut(nil)
         }
+        renamePanel = nil
+        renameField = nil
         renamingURL = nil
+        view.window?.makeKeyAndOrderFront(nil)
     }
 
     @objc private func doubleClickRow() {
@@ -526,10 +536,7 @@ extension FileListContainerViewController: NSTableViewDelegate {
         switch columnID {
         case "Name":
             cell.textField?.stringValue = node.name
-            cell.textField?.isHidden = false
             cell.imageView?.image = iconCache?.icon(for: node)
-            // 이전 리네임 필드가 남아있으면 제거
-            cell.subviews.filter { $0.tag == 999 }.forEach { $0.removeFromSuperview() }
         case "Size":
             cell.textField?.stringValue = node.formattedSize
         case "Date":
@@ -632,8 +639,11 @@ extension FileListContainerViewController: NSTextFieldDelegate {
         guard control.tag == 999 else { return false }
 
         if commandSelector == #selector(NSResponder.cancelOperation(_:)) {
-            cleanupRenameField()
-            view.window?.makeFirstResponder(tableView)
+            cleanupRenamePanel()
+            return true
+        }
+        if commandSelector == #selector(NSResponder.insertNewline(_:)) {
+            commitRename()
             return true
         }
         return false
@@ -643,15 +653,19 @@ extension FileListContainerViewController: NSTextFieldDelegate {
         if obj.object is NSSearchField { return }
         guard let textField = obj.object as? NSTextField,
               textField.tag == 999 else { return }
+        commitRename()
+    }
 
+    private func commitRename() {
         guard let url = renamingURL,
-              let node = files.first(where: { $0.url == url }) else {
-            cleanupRenameField()
+              let node = files.first(where: { $0.url == url }),
+              let field = renameField else {
+            cleanupRenamePanel()
             return
         }
 
-        let newName = textField.stringValue.trimmingCharacters(in: .whitespaces)
-        cleanupRenameField()
+        let newName = field.stringValue.trimmingCharacters(in: .whitespaces)
+        cleanupRenamePanel()
 
         guard !newName.isEmpty, newName != node.name else { return }
 
