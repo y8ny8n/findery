@@ -321,6 +321,9 @@ extension FileListContainerViewController: QLPreviewPanelDataSource, QLPreviewPa
             toggleQuickLook()
         } else if event.keyCode == 36 { // Enter/Return
             openSelectedItem()
+        } else if event.keyCode == 51 && event.modifierFlags.intersection(.deviceIndependentFlagsMask) == [] {
+            // Backspace (⌘ 없이) → 뒤로가기
+            NotificationCenter.default.post(name: .finderyGoBack, object: nil)
         } else {
             super.keyDown(with: event)
         }
