@@ -11,7 +11,9 @@
 		17D79DAFBE9D1DE2E975DE63 /* FileWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF1B3726386EA32329B1EB97 /* FileWatcher.swift */; };
 		1E661E96D956440CF4D2A998 /* NavigationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51AC1C88AAFF42E3424171BB /* NavigationController.swift */; };
 		2168FD65BD5ED16FAC57B056 /* TreeSidebarViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4076AB78647F409B0A2D14E6 /* TreeSidebarViewController.swift */; };
+		24797C1E6711626994B366AF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 623B5B1CE5AEC09CC1B21693 /* Assets.xcassets */; };
 		3B5F19BFEA9225F3B3ACD9F2 /* FileOperations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CF2CD86BF22845AE7FBE610 /* FileOperations.swift */; };
+		3F5CDEB6F946B9FFB1F7EFD1 /* AppIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = 32BBAC7D3BB557D5B2609F20 /* AppIcon.png */; };
 		4282ECBCE37A00B68A838F5C /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69C38B990D44E784536FCC1E /* Notifications.swift */; };
 		4FA902025793FAD2394FC02E /* FileSystemControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE453AB1E585F625C2BD673 /* FileSystemControllerTests.swift */; };
 		5CB7FBD14A54DFEFD69E2FB8 /* NavigationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61451F8C3A80AC0B70380B34 /* NavigationState.swift */; };
@@ -24,6 +26,7 @@
 		D0F5A455FEAFC9B8C5E935F8 /* FileListContainerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0B2EF0B7255B2BE04D74447 /* FileListContainerViewController.swift */; };
 		D9C30209B82B847825F1C475 /* StatusBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A63D383807172DB2DB74DA1A /* StatusBarView.swift */; };
 		F51EBD5B744671EA9881F2F2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABAE572F03CA42271B9A855F /* AppDelegate.swift */; };
+		F7E377CCCBD470C45B364E36 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 0BD7097CFD19645860536174 /* AppIcon.icns */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -38,13 +41,16 @@
 
 /* Begin PBXFileReference section */
 		083CE45EFAFA28F667212C0E /* IconCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IconCache.swift; sourceTree = "<group>"; };
+		0BD7097CFD19645860536174 /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
 		0C7AD18B3D9CFD337E5677DE /* MainWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowController.swift; sourceTree = "<group>"; };
 		29CAC095B2ACF1F04141527B /* FileSystemController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSystemController.swift; sourceTree = "<group>"; };
+		32BBAC7D3BB557D5B2609F20 /* AppIcon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = AppIcon.png; sourceTree = "<group>"; };
 		3653A6F8C8FFC3512F27148C /* FinderyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FinderyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3CF2CD86BF22845AE7FBE610 /* FileOperations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileOperations.swift; sourceTree = "<group>"; };
 		4076AB78647F409B0A2D14E6 /* TreeSidebarViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreeSidebarViewController.swift; sourceTree = "<group>"; };
 		51AC1C88AAFF42E3424171BB /* NavigationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationController.swift; sourceTree = "<group>"; };
 		61451F8C3A80AC0B70380B34 /* NavigationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationState.swift; sourceTree = "<group>"; };
+		623B5B1CE5AEC09CC1B21693 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		69C38B990D44E784536FCC1E /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
 		8CBD3BF7729AC637DA70746D /* AddressBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressBarView.swift; sourceTree = "<group>"; };
 		9C4834C485D2670295F09CB8 /* Findery.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Findery.entitlements; sourceTree = "<group>"; };
@@ -146,6 +152,9 @@
 		E6ABA15079B749A48B1CD3E6 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				0BD7097CFD19645860536174 /* AppIcon.icns */,
+				32BBAC7D3BB557D5B2609F20 /* AppIcon.png */,
+				623B5B1CE5AEC09CC1B21693 /* Assets.xcassets */,
 				9C4834C485D2670295F09CB8 /* Findery.entitlements */,
 				F70D69E78679884C640DF49E /* Info.plist */,
 			);
@@ -178,6 +187,7 @@
 			buildConfigurationList = BE44F31800D587D615A6BE15 /* Build configuration list for PBXNativeTarget "Findery" */;
 			buildPhases = (
 				655CFB8370565EB94DB77FA3 /* Sources */,
+				80CE395EE9DAB8547C6C3B99 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -220,6 +230,19 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		80CE395EE9DAB8547C6C3B99 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F7E377CCCBD470C45B364E36 /* AppIcon.icns in Resources */,
+				3F5CDEB6F946B9FFB1F7EFD1 /* AppIcon.png in Resources */,
+				24797C1E6711626994B366AF /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		4031A5E089202BA81981D21D /* Sources */ = {
