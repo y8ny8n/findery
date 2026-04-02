@@ -355,7 +355,12 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         do {
             let folderURL = try fileOperations.createNewFolder(in: url)
             undoStack.append(.newFolder(url: folderURL))
-            refreshCurrentDirectory()
+
+            Task { @MainActor in
+                let items = await fileSystemController.enumerate(directory: url)
+                fileListContainerVC.updateFiles(items, iconCache: iconCache)
+                fileListContainerVC.selectAndRename(url: folderURL)
+            }
         } catch {
             showError(error)
         }
