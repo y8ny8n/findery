@@ -32,9 +32,11 @@ final class FileListContainerViewController: NSViewController {
     private let backButton = NSButton()
     private let forwardButton = NSButton()
     private let upButton = NSButton()
+    private let favoriteButton = NSButton()
     private let hiddenToggle = NSButton()
     private let addressBar = AddressBarView()
     private(set) var showHiddenFiles = false
+    private var currentURL: URL?
     private let tableView = ServicesTableView()
     private let scrollView = NSScrollView()
     private let statusBar = StatusBarView()
@@ -96,6 +98,18 @@ final class FileListContainerViewController: NSViewController {
         makeNavButton(upButton, symbol: "chevron.up", action: #selector(upTapped), tooltip: "상위 폴더 (⌘↑)")
         upButton.isEnabled = true
 
+        // 즐겨찾기 버튼 (★)
+        favoriteButton.translatesAutoresizingMaskIntoConstraints = false
+        favoriteButton.bezelStyle = .accessoryBarAction
+        favoriteButton.isBordered = true
+        favoriteButton.image = NSImage(systemSymbolName: "star", accessibilityDescription: "즐겨찾기")
+        favoriteButton.imageScaling = .scaleProportionallyDown
+        favoriteButton.target = self
+        favoriteButton.action = #selector(toggleFavorite)
+        favoriteButton.toolTip = "즐겨찾기 추가/제거"
+        favoriteButton.contentTintColor = .secondaryLabelColor
+        view.addSubview(favoriteButton)
+
         // 숨김파일 토글 버튼 (.* 텍스트)
         hiddenToggle.translatesAutoresizingMaskIntoConstraints = false
         hiddenToggle.bezelStyle = .accessoryBarAction
@@ -123,8 +137,13 @@ final class FileListContainerViewController: NSViewController {
 
             addressBar.topAnchor.constraint(equalTo: view.topAnchor, constant: 8),
             addressBar.leadingAnchor.constraint(equalTo: upButton.trailingAnchor, constant: 8),
-            addressBar.trailingAnchor.constraint(equalTo: hiddenToggle.leadingAnchor, constant: -8),
+            addressBar.trailingAnchor.constraint(equalTo: favoriteButton.leadingAnchor, constant: -8),
             addressBar.heightAnchor.constraint(equalToConstant: 28),
+
+            favoriteButton.topAnchor.constraint(equalTo: view.topAnchor, constant: 8),
+            favoriteButton.trailingAnchor.constraint(equalTo: hiddenToggle.leadingAnchor, constant: -2),
+            favoriteButton.widthAnchor.constraint(equalToConstant: 28),
+            favoriteButton.heightAnchor.constraint(equalToConstant: 28),
 
             hiddenToggle.topAnchor.constraint(equalTo: view.topAnchor, constant: 8),
             hiddenToggle.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
@@ -146,6 +165,24 @@ final class FileListContainerViewController: NSViewController {
     @objc private func upTapped() {
         NotificationCenter.default.post(name: .finderyGoUp, object: nil)
     }
+    @objc private func toggleFavorite() {
+        guard let url = currentURL else { return }
+        if FavoritesManager.shared.contains(url) {
+            FavoritesManager.shared.remove(url: url)
+        } else {
+            FavoritesManager.shared.add(url)
+        }
+        updateFavoriteButton()
+    }
+
+    private func updateFavoriteButton() {
+        guard let url = currentURL else { return }
+        let isFav = FavoritesManager.shared.contains(url)
+        favoriteButton.image = NSImage(systemSymbolName: isFav ? "star.fill" : "star",
+                                        accessibilityDescription: "즐겨찾기")
+        favoriteButton.contentTintColor = isFav ? .systemYellow : .secondaryLabelColor
+    }
+
     @objc func toggleHiddenFiles() {
         showHiddenFiles.toggle()
         hiddenToggle.contentTintColor = showHiddenFiles ? .controlAccentColor : .secondaryLabelColor
@@ -228,7 +265,9 @@ final class FileListContainerViewController: NSViewController {
     }
 
     func updateAddressBar(_ url: URL) {
+        currentURL = url
         addressBar.setPath(url)
+        updateFavoriteButton()
     }
 
     func animateRemovalOfSelected(completion: @escaping () -> Void) {
