@@ -159,22 +159,12 @@ final class AddressBarView: NSView, NSTextFieldDelegate {
         suggestionsVC.update(suggestions: suggestions)
 
         let newSize = NSSize(width: textField.bounds.width, height: min(CGFloat(suggestions.count) * 24, 240))
+        suggestionsVC.view.window?.makeFirstResponder(nil)
         if !popover.isShown {
             popover.contentSize = newSize
             popover.show(relativeTo: textField.bounds, of: textField, preferredEdge: .maxY)
         } else {
             popover.contentSize = newSize
-        }
-        // popover가 포커스를 빼앗으므로 커서 위치 보존하며 복원
-        let cursorRange = textField.currentEditor()?.selectedRange
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            if self.window?.firstResponder !== self.textField.currentEditor() {
-                self.window?.makeFirstResponder(self.textField)
-            }
-            if let range = cursorRange {
-                self.textField.currentEditor()?.selectedRange = range
-            }
         }
     }
 
@@ -250,11 +240,18 @@ final class AddressBarView: NSView, NSTextFieldDelegate {
     }
 }
 
+// MARK: - Non-focusable TableView
+
+private final class NonFocusableTableView: NSTableView {
+    override var acceptsFirstResponder: Bool { false }
+    override func becomeFirstResponder() -> Bool { false }
+}
+
 // MARK: - Suggestions Dropdown ViewController
 
 final class SuggestionsViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate {
 
-    private let tableView = NSTableView()
+    private let tableView = NonFocusableTableView()
     private let scrollView = NSScrollView()
     private var suggestions: [String] = []
 
