@@ -92,9 +92,15 @@ final class FileListContainerViewController: NSViewController {
         }
     }
 
-    @objc private func backTapped() { onGoBack?() }
-    @objc private func forwardTapped() { onGoForward?() }
-    @objc private func upTapped() { onGoUp?() }
+    @objc private func backTapped() {
+        NotificationCenter.default.post(name: .finderyGoBack, object: nil)
+    }
+    @objc private func forwardTapped() {
+        NotificationCenter.default.post(name: .finderyGoForward, object: nil)
+    }
+    @objc private func upTapped() {
+        NotificationCenter.default.post(name: .finderyGoUp, object: nil)
+    }
 
     private func setupTableView() {
         let columns: [(String, String, CGFloat)] = [
@@ -149,10 +155,23 @@ final class FileListContainerViewController: NSViewController {
     }
 
     func updateFiles(_ items: [FileNode], iconCache: IconCache) {
+        let selectedURLs = Set(tableView.selectedRowIndexes.compactMap { row in
+            row < files.count ? files[row].url : nil
+        })
+
         self.files = items
         self.iconCache = iconCache
         tableView.reloadData()
         statusBar.update(itemCount: items.count, totalSize: items.reduce(0) { $0 + $1.size })
+
+        if !selectedURLs.isEmpty {
+            let newSelection = IndexSet(items.enumerated().compactMap { index, node in
+                selectedURLs.contains(node.url) ? index : nil
+            })
+            if !newSelection.isEmpty {
+                tableView.selectRowIndexes(newSelection, byExtendingSelection: false)
+            }
+        }
     }
 
     func updateAddressBar(_ url: URL) {

@@ -43,6 +43,7 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         setupSplitView()
         setupMenuShortcuts()
         setupFileWatcher()
+        setupNotifications()
         navigateTo(FileSystemController.homeDirectory)
     }
 
@@ -71,9 +72,7 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         fileListContainerVC.onNavigate = { [weak self] url in
             self?.navigateTo(url)
         }
-        fileListContainerVC.onGoBack = { [weak self] in self?.goBackAction() }
-        fileListContainerVC.onGoForward = { [weak self] in self?.goForwardAction() }
-        fileListContainerVC.onGoUp = { [weak self] in self?.goUpAction() }
+        // Nav buttons use NotificationCenter (setupNotifications)
 
         fileListContainerVC.contextMenuProvider = { [weak self] urls in
             self?.buildContextMenu(for: urls) ?? NSMenu()
@@ -157,6 +156,12 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         let viewMenuItem = NSMenuItem(title: "View", action: nil, keyEquivalent: "")
         viewMenuItem.submenu = viewMenu
         mainMenu.addItem(viewMenuItem)
+    }
+
+    private func setupNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(goBackAction), name: .finderyGoBack, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(goForwardAction), name: .finderyGoForward, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(goUpAction), name: .finderyGoUp, object: nil)
     }
 
     private func setupFileWatcher() {
