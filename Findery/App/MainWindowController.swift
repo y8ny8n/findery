@@ -325,6 +325,14 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
             menu.addItem(infoItem)
         }
 
+        menu.addItem(NSMenuItem.separator())
+
+        // 압축하기
+        let compressItem = NSMenuItem(title: "압축하기", action: #selector(contextCompress(_:)), keyEquivalent: "")
+        compressItem.target = self
+        compressItem.representedObject = urls
+        menu.addItem(compressItem)
+
         return menu
     }
 
@@ -559,6 +567,44 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
               let fileURLs = info["files"] as? [URL],
               let appURL = info["app"] as? URL else { return }
         NSWorkspace.shared.open(fileURLs, withApplicationAt: appURL, configuration: NSWorkspace.OpenConfiguration())
+    }
+
+    @objc private func contextCompress(_ sender: NSMenuItem) {
+        guard let urls = sender.representedObject as? [URL], !urls.isEmpty else { return }
+
+        // Keka가 설치되어 있으면 Keka로 압축
+        if let kekaURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.aone.keka") {
+            NSWorkspace.shared.open(urls, withApplicationAt: kekaURL, configuration: NSWorkspace.OpenConfiguration())
+            return
+        }
+
+        // Keka 없으면 시스템 ditto로 zip 압축
+        guard let destination = currentURL else { return }
+        let zipName: String
+        if urls.count == 1 {
+            zipName = urls[0].deletingPathExtension().lastPathComponent + ".zip"
+        } else {
+            zipName = "압축.zip"
+        }
+        var zipURL = destination.appendingPathComponent(zipName)
+
+        // 중복 방지
+        var counter = 2
+        while FileManager.default.fileExists(atPath: zipURL.path) {
+            let base = zipURL.deletingPathExtension().lastPathComponent
+            let cleanBase = base.replacingOccurrences(of: " \\d+$", with: "", options: .regularExpression)
+            zipURL = destination.appendingPathComponent("\(cleanBase) \(counter).zip")
+            counter += 1
+        }
+
+        let filePaths = urls.map(\.path)
+        DispatchQueue.global(qos: .userInitiated).async {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
+            process.arguments = ["-c", "-k", "--sequesterRsrc"] + filePaths + [zipURL.path]
+            try? process.run()
+            process.waitUntilExit()
+        }
     }
 
     @objc private func refreshAction() {
