@@ -498,6 +498,8 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
             return
         }
 
+        var affectedURLs: [URL] = []
+
         do {
             switch action {
             case .copy(let created):
@@ -508,20 +510,33 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
             case .move(let pairs):
                 for pair in pairs {
                     try FileManager.default.moveItem(at: pair.dest, to: pair.source)
+                    affectedURLs.append(pair.source)
                 }
 
             case .rename(let original, let renamed):
                 try FileManager.default.moveItem(at: renamed, to: original)
+                affectedURLs.append(original)
 
             case .trash(let trashedURLs):
                 for pair in trashedURLs {
                     try FileManager.default.moveItem(at: pair.trashURL, to: pair.original)
+                    affectedURLs.append(pair.original)
                 }
 
             case .newFolder(let url):
                 try FileManager.default.trashItem(at: url, resultingItemURL: nil)
             }
+
             refreshCurrentDirectory()
+
+            // 되돌린 파일 하이라이트 + 깜빡임
+            if !affectedURLs.isEmpty {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+                    self?.fileListContainerVC.flashFiles(urls: affectedURLs)
+                }
+            }
+
+            NSSound(named: .init("Funk"))?.play()
         } catch {
             showError(error)
         }

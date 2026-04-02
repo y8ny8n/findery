@@ -316,6 +316,30 @@ final class FileListContainerViewController: NSViewController {
         updateFavoriteButton()
     }
 
+    func flashFiles(urls: [URL]) {
+        let rows = IndexSet(files.enumerated().compactMap { index, node in
+            urls.contains(node.url) ? index : nil
+        })
+        guard !rows.isEmpty else { return }
+
+        // 선택
+        tableView.selectRowIndexes(rows, byExtendingSelection: false)
+        if let first = rows.first { tableView.scrollRowToVisible(first) }
+
+        // 깜빡임 (밝게 → 원래)
+        for row in rows {
+            if let rowView = tableView.rowView(atRow: row, makeIfNecessary: false) {
+                rowView.wantsLayer = true
+                rowView.layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.3).cgColor
+                NSAnimationContext.runAnimationGroup({ context in
+                    context.duration = 0.6
+                    context.allowsImplicitAnimation = true
+                    rowView.layer?.backgroundColor = NSColor.clear.cgColor
+                })
+            }
+        }
+    }
+
     func animateRemovalOfSelected(completion: @escaping () -> Void) {
         let selectedRows = tableView.selectedRowIndexes
         guard !selectedRows.isEmpty else {
@@ -381,13 +405,18 @@ final class FileListContainerViewController: NSViewController {
         // 공식 NSTableView 편집 API 사용 (전체 선택으로 시작)
         tableView.editColumn(nameColIndex, row: row, with: nil, select: true)
 
-        // 확장자가 있으면 확장자 제외 선택으로 조정
+        // 파일의 실제 확장자만 제외하고 선택 (pathExtension 기반)
+        let ext = node.url.pathExtension
         DispatchQueue.main.async {
             guard let editor = textField.currentEditor() else { return }
-            let name = textField.stringValue
-            if let dotIndex = name.lastIndex(of: "."), dotIndex != name.startIndex {
-                let length = name.distance(from: name.startIndex, to: dotIndex)
-                editor.selectedRange = NSRange(location: 0, length: length)
+            if !ext.isEmpty {
+                // "file.txt" → "file" 선택 (.txt 제외)
+                let name = textField.stringValue
+                let extWithDot = "." + ext
+                if name.hasSuffix(extWithDot) {
+                    let length = name.count - extWithDot.count
+                    editor.selectedRange = NSRange(location: 0, length: length)
+                }
             }
             // 확장자 없으면 전체 선택 유지 (select: true)
         }
