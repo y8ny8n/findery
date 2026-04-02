@@ -7,6 +7,7 @@ protocol TreeSidebarDelegate: AnyObject {
 final class TreeSidebarViewController: NSViewController {
 
     weak var delegate: TreeSidebarDelegate?
+    private var suppressSelectionCallback = false
 
     private let outlineView = NSOutlineView()
     private let scrollView = NSScrollView()
@@ -57,7 +58,8 @@ final class TreeSidebarViewController: NSViewController {
     }
 
     func selectDirectory(_ url: URL) {
-        // Find and select the node matching this URL
+        suppressSelectionCallback = true
+        defer { suppressSelectionCallback = false }
         for row in 0..<outlineView.numberOfRows {
             if let node = outlineView.item(atRow: row) as? TreeNode,
                node.url == url {
@@ -136,7 +138,8 @@ extension TreeSidebarViewController: NSOutlineViewDelegate {
     }
 
     func outlineViewSelectionDidChange(_ notification: Notification) {
-        guard let selectedRow = outlineView.selectedRowIndexes.first,
+        guard !suppressSelectionCallback,
+              let selectedRow = outlineView.selectedRowIndexes.first,
               let node = outlineView.item(atRow: selectedRow) as? TreeNode else {
             return
         }
