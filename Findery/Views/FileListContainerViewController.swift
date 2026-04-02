@@ -3,6 +3,9 @@ import QuickLookUI
 
 final class FileListContainerViewController: NSViewController {
 
+    private let backButton = NSButton()
+    private let forwardButton = NSButton()
+    private let upButton = NSButton()
     private let addressBar = AddressBarView()
     private let tableView = NSTableView()
     private let scrollView = NSScrollView()
@@ -16,11 +19,19 @@ final class FileListContainerViewController: NSViewController {
     var onNavigate: ((URL) -> Void)?
     var contextMenuProvider: (([URL]) -> NSMenu)?
     var onRenameComplete: ((URL, URL) -> Void)?
+    var onGoBack: (() -> Void)?
+    var onGoForward: (() -> Void)?
+    var onGoUp: (() -> Void)?
     private var cutURLs: Set<URL> = []
 
     func setCutURLs(_ urls: Set<URL>) {
         cutURLs = urls
         tableView.reloadData()
+    }
+
+    func updateNavButtons(canGoBack: Bool, canGoForward: Bool) {
+        backButton.isEnabled = canGoBack
+        forwardButton.isEnabled = canGoForward
     }
 
     enum SortKey: String {
@@ -29,18 +40,49 @@ final class FileListContainerViewController: NSViewController {
 
     override func loadView() {
         view = NSView()
-        setupAddressBar()
+        setupNavAndAddressBar()
         setupTableView()
         setupStatusBar()
     }
 
-    private func setupAddressBar() {
+    private func setupNavAndAddressBar() {
+        func makeNavButton(_ button: NSButton, symbol: String, action: Selector, tooltip: String) {
+            button.translatesAutoresizingMaskIntoConstraints = false
+            button.bezelStyle = .accessoryBarAction
+            button.isBordered = true
+            button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: tooltip)
+            button.imageScaling = .scaleProportionallyDown
+            button.target = self
+            button.action = action
+            button.toolTip = tooltip
+            button.isEnabled = false
+            view.addSubview(button)
+            NSLayoutConstraint.activate([
+                button.widthAnchor.constraint(equalToConstant: 28),
+                button.heightAnchor.constraint(equalToConstant: 28),
+            ])
+        }
+
+        makeNavButton(backButton, symbol: "chevron.left", action: #selector(backTapped), tooltip: "뒤로 (⌘[)")
+        makeNavButton(forwardButton, symbol: "chevron.right", action: #selector(forwardTapped), tooltip: "앞으로 (⌘])")
+        makeNavButton(upButton, symbol: "chevron.up", action: #selector(upTapped), tooltip: "상위 폴더 (⌘↑)")
+        upButton.isEnabled = true
+
         addressBar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(addressBar)
 
         NSLayoutConstraint.activate([
+            backButton.topAnchor.constraint(equalTo: view.topAnchor, constant: 8),
+            backButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
+
+            forwardButton.topAnchor.constraint(equalTo: view.topAnchor, constant: 8),
+            forwardButton.leadingAnchor.constraint(equalTo: backButton.trailingAnchor, constant: 2),
+
+            upButton.topAnchor.constraint(equalTo: view.topAnchor, constant: 8),
+            upButton.leadingAnchor.constraint(equalTo: forwardButton.trailingAnchor, constant: 2),
+
             addressBar.topAnchor.constraint(equalTo: view.topAnchor, constant: 8),
-            addressBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
+            addressBar.leadingAnchor.constraint(equalTo: upButton.trailingAnchor, constant: 8),
             addressBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
             addressBar.heightAnchor.constraint(equalToConstant: 28),
         ])
@@ -49,6 +91,10 @@ final class FileListContainerViewController: NSViewController {
             self?.onNavigate?(url)
         }
     }
+
+    @objc private func backTapped() { onGoBack?() }
+    @objc private func forwardTapped() { onGoForward?() }
+    @objc private func upTapped() { onGoUp?() }
 
     private func setupTableView() {
         let columns: [(String, String, CGFloat)] = [

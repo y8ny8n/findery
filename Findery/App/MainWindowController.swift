@@ -67,13 +67,13 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         window?.contentViewController = splitViewController
 
         treeSidebarVC.delegate = self
-        treeSidebarVC.onGoBack = { [weak self] in self?.goBackAction() }
-        treeSidebarVC.onGoForward = { [weak self] in self?.goForwardAction() }
-        treeSidebarVC.onGoUp = { [weak self] in self?.goUpAction() }
 
         fileListContainerVC.onNavigate = { [weak self] url in
             self?.navigateTo(url)
         }
+        fileListContainerVC.onGoBack = { [weak self] in self?.goBackAction() }
+        fileListContainerVC.onGoForward = { [weak self] in self?.goForwardAction() }
+        fileListContainerVC.onGoUp = { [weak self] in self?.goUpAction() }
 
         fileListContainerVC.contextMenuProvider = { [weak self] urls in
             self?.buildContextMenu(for: urls) ?? NSMenu()
@@ -251,7 +251,7 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
     }
 
     private func updateNavButtonStates() {
-        treeSidebarVC.updateNavButtons(
+        fileListContainerVC.updateNavButtons(
             canGoBack: navigationController.state.canGoBack,
             canGoForward: navigationController.state.canGoForward
         )

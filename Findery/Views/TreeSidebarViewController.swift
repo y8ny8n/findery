@@ -8,70 +8,15 @@ final class TreeSidebarViewController: NSViewController {
 
     weak var delegate: TreeSidebarDelegate?
 
-    var onGoBack: (() -> Void)?
-    var onGoForward: (() -> Void)?
-    var onGoUp: (() -> Void)?
-
     private let outlineView = NSOutlineView()
     private let scrollView = NSScrollView()
-    private let navBar = NSView()
-    private let backButton = NSButton()
-    private let forwardButton = NSButton()
-    private let upButton = NSButton()
     private var rootNodes: [TreeNode] = []
 
     override func loadView() {
         view = NSView()
-        setupNavBar()
         setupScrollView()
         setupOutlineView()
         loadRootNodes()
-    }
-
-    private func setupNavBar() {
-        navBar.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(navBar)
-
-        func navButton(_ button: NSButton, symbol: String, action: Selector, tooltip: String) {
-            button.translatesAutoresizingMaskIntoConstraints = false
-            button.bezelStyle = .accessoryBarAction
-            button.isBordered = false
-            button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: tooltip)
-            button.imageScaling = .scaleProportionallyDown
-            button.target = self
-            button.action = action
-            button.toolTip = tooltip
-            navBar.addSubview(button)
-            NSLayoutConstraint.activate([
-                button.widthAnchor.constraint(equalToConstant: 28),
-                button.heightAnchor.constraint(equalToConstant: 24),
-                button.centerYAnchor.constraint(equalTo: navBar.centerYAnchor),
-            ])
-        }
-
-        navButton(backButton, symbol: "chevron.left", action: #selector(backTapped), tooltip: "뒤로 (⌘[)")
-        navButton(forwardButton, symbol: "chevron.right", action: #selector(forwardTapped), tooltip: "앞으로 (⌘])")
-        navButton(upButton, symbol: "chevron.up", action: #selector(upTapped), tooltip: "상위 폴더 (⌘↑)")
-
-        NSLayoutConstraint.activate([
-            navBar.topAnchor.constraint(equalTo: view.topAnchor),
-            navBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            navBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            navBar.heightAnchor.constraint(equalToConstant: 32),
-
-            backButton.leadingAnchor.constraint(equalTo: navBar.leadingAnchor, constant: 8),
-            forwardButton.leadingAnchor.constraint(equalTo: backButton.trailingAnchor, constant: 4),
-            upButton.leadingAnchor.constraint(equalTo: forwardButton.trailingAnchor, constant: 4),
-        ])
-    }
-
-    @objc private func backTapped() { onGoBack?() }
-    @objc private func forwardTapped() { onGoForward?() }
-    @objc private func upTapped() { onGoUp?() }
-
-    func updateNavButtons(canGoBack: Bool, canGoForward: Bool) {
-        backButton.isEnabled = canGoBack
-        forwardButton.isEnabled = canGoForward
     }
 
     private func setupScrollView() {
@@ -82,7 +27,7 @@ final class TreeSidebarViewController: NSViewController {
         view.addSubview(scrollView)
 
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: navBar.bottomAnchor),
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
