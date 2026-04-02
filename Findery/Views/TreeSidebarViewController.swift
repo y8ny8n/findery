@@ -83,10 +83,10 @@ final class TreeSidebarViewController: NSViewController {
         )) ?? []
 
         var locationItems = [
-            SidebarItem(name: home.lastPathComponent, url: home, icon: "person.fill", isFavorite: false)
+            SidebarItem(name: home.lastPathComponent, url: home, icon: "person.fill", isFavorite: false),
+            SidebarItem(name: "Macintosh HD", url: URL(fileURLWithPath: "/"), icon: "internaldrive.fill", isFavorite: false),
         ]
         for vol in volumes {
-            // Macintosh HD (루트 볼륨) 제외
             if vol.lastPathComponent == "Macintosh HD" { continue }
             locationItems.append(SidebarItem(name: vol.lastPathComponent, url: vol, icon: "externaldrive.fill", isFavorite: false))
         }
@@ -108,6 +108,35 @@ final class TreeSidebarViewController: NSViewController {
     func selectDirectory(_ url: URL) {
         suppressSelectionCallback = true
         defer { suppressSelectionCallback = false }
+
+        // 현재 선택된 항목이 어느 섹션인지 파악
+        var currentSection: SidebarSection?
+        if let currentRow = outlineView.selectedRowIndexes.first,
+           let currentItem = outlineView.item(atRow: currentRow) as? SidebarItem {
+            for section in sections {
+                if section.items.contains(where: { $0 === currentItem }) {
+                    currentSection = section
+                    break
+                }
+            }
+        }
+
+        // 같은 섹션에서 먼저 찾기
+        if let section = currentSection {
+            for row in 0..<outlineView.numberOfRows {
+                if let item = outlineView.item(atRow: row) as? SidebarItem,
+                   item.url.standardizedFileURL == url.standardizedFileURL {
+                    // 같은 섹션에 속하는지 확인
+                    if section.items.contains(where: { $0 === item }) {
+                        outlineView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+                        outlineView.scrollRowToVisible(row)
+                        return
+                    }
+                }
+            }
+        }
+
+        // 같은 섹션에 없으면 아무데서나 찾기
         for row in 0..<outlineView.numberOfRows {
             if let item = outlineView.item(atRow: row) as? SidebarItem,
                item.url.standardizedFileURL == url.standardizedFileURL {
