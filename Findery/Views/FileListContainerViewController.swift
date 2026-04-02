@@ -649,8 +649,7 @@ extension FileListContainerViewController: NSTableViewDelegate {
             cell.textField?.stringValue = node.formattedSize
         case "Date":
             let formatter = DateFormatter()
-            formatter.dateStyle = .medium
-            formatter.timeStyle = .short
+            formatter.dateFormat = "yyyy. MM. dd. HH:mm"
             cell.textField?.stringValue = formatter.string(from: node.dateModified)
         case "Kind":
             cell.textField?.stringValue = node.kind
