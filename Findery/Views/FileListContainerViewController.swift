@@ -378,18 +378,18 @@ final class FileListContainerViewController: NSViewController {
         textField.isBordered = true
         textField.drawsBackground = true
 
-        // 공식 NSTableView 편집 API 사용
-        tableView.editColumn(nameColIndex, row: row, with: nil, select: false)
+        // 공식 NSTableView 편집 API 사용 (전체 선택으로 시작)
+        tableView.editColumn(nameColIndex, row: row, with: nil, select: true)
 
-        // 확장자 제외 선택
+        // 확장자가 있으면 확장자 제외 선택으로 조정
         DispatchQueue.main.async {
+            guard let editor = textField.currentEditor() else { return }
             let name = textField.stringValue
             if let dotIndex = name.lastIndex(of: "."), dotIndex != name.startIndex {
                 let length = name.distance(from: name.startIndex, to: dotIndex)
-                textField.currentEditor()?.selectedRange = NSRange(location: 0, length: length)
-            } else {
-                textField.currentEditor()?.selectAll(nil)
+                editor.selectedRange = NSRange(location: 0, length: length)
             }
+            // 확장자 없으면 전체 선택 유지 (select: true)
         }
     }
 

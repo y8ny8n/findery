@@ -95,6 +95,9 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
             self?.buildContextMenu(for: urls) ?? NSMenu()
         }
 
+        fileListContainerVC.onRenameComplete = { [weak self] original, renamed in
+            self?.undoStack.append(.rename(original: original, renamed: renamed))
+        }
         fileListContainerVC.onRenameBegan = { [weak self] in
             self?.fileWatcher.pause()
         }
@@ -466,9 +469,6 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
     }
 
     @objc private func renameAction() {
-        fileListContainerVC.onRenameComplete = { [weak self] original, renamed in
-            self?.undoStack.append(.rename(original: original, renamed: renamed))
-        }
         fileListContainerVC.startRenaming()
     }
 
