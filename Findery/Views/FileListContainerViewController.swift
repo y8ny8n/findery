@@ -53,6 +53,8 @@ final class FileListContainerViewController: NSViewController {
     var onRenameComplete: ((URL, URL) -> Void)?
     var onGoBack: (() -> Void)?
     var onGoForward: (() -> Void)?
+    var onRenameBegan: (() -> Void)?
+    var onRenameEnded: (() -> Void)?
     var onGoUp: (() -> Void)?
     private var cutURLs: Set<URL> = []
 
@@ -364,6 +366,7 @@ final class FileListContainerViewController: NSViewController {
         }
 
         renamingURL = node.url
+        onRenameBegan?()
 
         let nameColIndex = tableView.column(withIdentifier: NSUserInterfaceItemIdentifier("Name"))
         guard nameColIndex >= 0,
@@ -398,11 +401,13 @@ final class FileListContainerViewController: NSViewController {
         guard let url = renamingURL,
               let node = files.first(where: { $0.url == url }) else {
             renamingURL = nil
+            onRenameEnded?()
             return
         }
 
         let newName = textField.stringValue.trimmingCharacters(in: .whitespaces)
         renamingURL = nil
+        onRenameEnded?()
 
         guard !newName.isEmpty, newName != node.name else {
             textField.stringValue = node.name
@@ -666,6 +671,7 @@ extension FileListContainerViewController: NSTextFieldDelegate {
                 textField.isBordered = false
                 textField.drawsBackground = false
                 renamingURL = nil
+                onRenameEnded?()
                 view.window?.makeFirstResponder(tableView)
             }
             return true

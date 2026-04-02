@@ -87,6 +87,13 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         fileListContainerVC.contextMenuProvider = { [weak self] urls in
             self?.buildContextMenu(for: urls) ?? NSMenu()
         }
+
+        fileListContainerVC.onRenameBegan = { [weak self] in
+            self?.fileWatcher.pause()
+        }
+        fileListContainerVC.onRenameEnded = { [weak self] in
+            self?.fileWatcher.resume()
+        }
     }
 
     private func setupMenuShortcuts() {

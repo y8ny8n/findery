@@ -5,8 +5,22 @@ final class FileWatcher {
 
     private var stream: FSEventStreamRef?
     private(set) var watchedURL: URL?
+    private(set) var isPaused = false
 
     var onChange: (() -> Void)?
+
+    func pause() {
+        isPaused = true
+    }
+
+    func resume() {
+        guard isPaused else { return }
+        isPaused = false
+        // Deliver one synthetic change so any edits made while paused are picked up
+        DispatchQueue.main.async { [weak self] in
+            self?.onChange?()
+        }
+    }
 
     func watch(directory url: URL) {
         stop()
@@ -16,6 +30,7 @@ final class FileWatcher {
             guard let info = clientInfo else { return }
             let watcher = Unmanaged<FileWatcher>.fromOpaque(info).takeUnretainedValue()
             DispatchQueue.main.async {
+                guard !watcher.isPaused else { return }
                 watcher.onChange?()
             }
         }
