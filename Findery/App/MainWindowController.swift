@@ -142,9 +142,10 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         editMenu.addItem(NSMenuItem(title: "전체 선택", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a"))
         editMenu.addItem(NSMenuItem.separator())
 
-        let renameItem = NSMenuItem(title: "이름 변경", action: #selector(renameAction), keyEquivalent: "")
-        renameItem.keyEquivalent = String(Character(UnicodeScalar(NSF2FunctionKey)!))
-        renameItem.keyEquivalentModifierMask = [.function]
+        // F2 is handled via keyDown in FileListContainerViewController (keyCode 120).
+        // Menu item kept for discoverability only; no keyEquivalent set because
+        // AppKit does not reliably match F2 through the menu dispatch system.
+        let renameItem = NSMenuItem(title: "이름 변경 (F2)", action: #selector(renameAction), keyEquivalent: "")
         renameItem.target = self
         editMenu.addItem(renameItem)
 
