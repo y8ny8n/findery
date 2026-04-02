@@ -3,8 +3,7 @@ import AppKit
 final class AddressBarView: NSView, NSTextFieldDelegate {
 
     private let textField = NSTextField()
-    private let popover = NSPopover()
-    private let suggestionsVC = SuggestionsViewController()
+    private var suggestionsPanel: SuggestionsPanel?
     private var debounceTimer: Timer?
 
     var onNavigate: ((URL) -> Void)?
@@ -33,22 +32,6 @@ final class AddressBarView: NSView, NSTextFieldDelegate {
             textField.leadingAnchor.constraint(equalTo: leadingAnchor),
             textField.trailingAnchor.constraint(equalTo: trailingAnchor),
         ])
-
-        popover.contentViewController = suggestionsVC
-        popover.behavior = .semitransient
-        popover.animates = false
-
-        suggestionsVC.onSelect = { [weak self] path in
-            guard let self else { return }
-            self.textField.stringValue = path
-            self.popover.performClose(nil)
-            // 포커스를 텍스트 필드로 되돌림
-            DispatchQueue.main.async {
-                self.window?.makeFirstResponder(self.textField)
-                self.textField.currentEditor()?.moveToEndOfLine(nil)
-                self.updateSuggestions()
-            }
-        }
     }
 
     func setPath(_ url: URL) {
@@ -84,9 +67,8 @@ final class AddressBarView: NSView, NSTextFieldDelegate {
         let path = textField.stringValue.trimmingCharacters(in: .whitespaces)
         guard !path.isEmpty else { return }
 
-        // Tab key: autocomplete with first suggestion
         if event == NSTextMovement.tab.rawValue {
-            if let first = suggestionsVC.firstSuggestion {
+            if let first = suggestionsPanel?.firstSuggestion {
                 textField.stringValue = first
                 window?.makeFirstResponder(textField)
                 textField.currentEditor()?.moveToEndOfLine(nil)
@@ -95,7 +77,6 @@ final class AddressBarView: NSView, NSTextFieldDelegate {
             return
         }
 
-        // Enter key: navigate
         if let url = FileSystemController.expandTilde(path) {
             onNavigate?(url)
         } else {
@@ -105,21 +86,19 @@ final class AddressBarView: NSView, NSTextFieldDelegate {
 
     func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
         if commandSelector == #selector(NSResponder.moveDown(_:)) {
-            if popover.isShown {
-                suggestionsVC.selectNext()
+            if let panel = suggestionsPanel, panel.isVisible {
+                panel.selectNext()
             } else {
                 updateSuggestions()
             }
             return true
         }
         if commandSelector == #selector(NSResponder.moveUp(_:)) {
-            if popover.isShown {
-                suggestionsVC.selectPrevious()
-            }
+            suggestionsPanel?.selectPrevious()
             return true
         }
         if commandSelector == #selector(NSResponder.insertTab(_:)) {
-            if let selected = suggestionsVC.selectedSuggestion ?? suggestionsVC.firstSuggestion {
+            if let selected = suggestionsPanel?.selectedSuggestion ?? suggestionsPanel?.firstSuggestion {
                 textField.stringValue = selected
                 textField.currentEditor()?.moveToEndOfLine(nil)
                 updateSuggestions()
@@ -156,16 +135,27 @@ final class AddressBarView: NSView, NSTextFieldDelegate {
             return
         }
 
-        suggestionsVC.update(suggestions: suggestions)
-
-        let newSize = NSSize(width: textField.bounds.width, height: min(CGFloat(suggestions.count) * 24, 240))
-        suggestionsVC.view.window?.makeFirstResponder(nil)
-        if !popover.isShown {
-            popover.contentSize = newSize
-            popover.show(relativeTo: textField.bounds, of: textField, preferredEdge: .maxY)
-        } else {
-            popover.contentSize = newSize
+        if suggestionsPanel == nil {
+            suggestionsPanel = SuggestionsPanel()
+            suggestionsPanel?.onSelect = { [weak self] path in
+                guard let self else { return }
+                self.textField.stringValue = path
+                self.textField.currentEditor()?.moveToEndOfLine(nil)
+                self.dismissSuggestions()
+                self.updateSuggestions()
+            }
         }
+
+        guard let parentWindow = window else { return }
+        let fieldRect = textField.convert(textField.bounds, to: nil)
+        let screenRect = parentWindow.convertToScreen(fieldRect)
+
+        suggestionsPanel?.showBelow(
+            screenRect: screenRect,
+            width: textField.bounds.width,
+            suggestions: suggestions,
+            parentWindow: parentWindow
+        )
     }
 
     private func computeSuggestions(for expandedPath: String, originalInput: String) -> [String] {
@@ -220,9 +210,7 @@ final class AddressBarView: NSView, NSTextFieldDelegate {
     }
 
     private func dismissSuggestions() {
-        if popover.isShown {
-            popover.performClose(nil)
-        }
+        suggestionsPanel?.dismiss()
         debounceTimer?.invalidate()
     }
 
@@ -240,24 +228,19 @@ final class AddressBarView: NSView, NSTextFieldDelegate {
     }
 }
 
-// MARK: - Non-focusable TableView
+// MARK: - Suggestions Panel (non-activating window)
 
-private final class NonFocusableTableView: NSTableView {
-    override var acceptsFirstResponder: Bool { false }
-    override func becomeFirstResponder() -> Bool { false }
-}
+private final class SuggestionsPanel: NSObject {
 
-// MARK: - Suggestions Dropdown ViewController
-
-final class SuggestionsViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate {
-
-    private let tableView = NonFocusableTableView()
+    private let panel: NSPanel
+    private let tableView: NSTableView
     private let scrollView = NSScrollView()
     private var suggestions: [String] = []
 
     var onSelect: ((String) -> Void)?
 
     var firstSuggestion: String? { suggestions.first }
+    var isVisible: Bool { panel.isVisible }
 
     var selectedSuggestion: String? {
         let row = tableView.selectedRow
@@ -265,37 +248,67 @@ final class SuggestionsViewController: NSViewController, NSTableViewDataSource, 
         return suggestions[row]
     }
 
-    override func loadView() {
-        view = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 200))
+    override init() {
+        panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 200),
+            styleMask: [.nonactivatingPanel, .fullSizeContentView],
+            backing: .buffered,
+            defer: true
+        )
+        tableView = NSTableView()
 
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.documentView = tableView
-        scrollView.hasVerticalScroller = true
-        scrollView.autohidesScrollers = true
-        view.addSubview(scrollView)
+        super.init()
+
+        panel.isFloatingPanel = true
+        panel.hidesOnDeactivate = true
+        panel.hasShadow = true
+        panel.backgroundColor = .controlBackgroundColor
+        panel.isOpaque = false
+        panel.level = .popUpMenu
 
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("Path"))
         column.title = ""
         tableView.addTableColumn(column)
         tableView.headerView = nil
-        tableView.delegate = self
-        tableView.dataSource = self
         tableView.rowHeight = 22
         tableView.intercellSpacing = NSSize(width: 0, height: 2)
-        tableView.doubleAction = #selector(rowDoubleClicked)
+        tableView.selectionHighlightStyle = .regular
         tableView.target = self
+        tableView.doubleAction = #selector(rowDoubleClicked)
 
-        NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-        ])
+        scrollView.documentView = tableView
+        scrollView.hasVerticalScroller = true
+        scrollView.autohidesScrollers = true
+        scrollView.frame = panel.contentView!.bounds
+        scrollView.autoresizingMask = [.width, .height]
+        panel.contentView?.addSubview(scrollView)
+
+        tableView.delegate = self
+        tableView.dataSource = self
     }
 
-    func update(suggestions: [String]) {
+    func showBelow(screenRect: NSRect, width: CGFloat, suggestions: [String], parentWindow: NSWindow) {
         self.suggestions = suggestions
         tableView.reloadData()
+
+        let height = min(CGFloat(suggestions.count) * 24, 240)
+        let panelRect = NSRect(
+            x: screenRect.origin.x,
+            y: screenRect.origin.y - height - 2,
+            width: width,
+            height: height
+        )
+        panel.setFrame(panelRect, display: true)
+
+        if !panel.isVisible {
+            parentWindow.addChildWindow(panel, ordered: .above)
+            panel.orderFront(nil)
+        }
+    }
+
+    func dismiss() {
+        panel.parent?.removeChildWindow(panel)
+        panel.orderOut(nil)
     }
 
     func selectNext() {
@@ -315,15 +328,15 @@ final class SuggestionsViewController: NSViewController, NSTableViewDataSource, 
         guard row >= 0, row < suggestions.count else { return }
         onSelect?(suggestions[row])
     }
+}
 
-    // MARK: - NSTableViewDataSource
-
+extension SuggestionsPanel: NSTableViewDataSource {
     func numberOfRows(in tableView: NSTableView) -> Int {
         suggestions.count
     }
+}
 
-    // MARK: - NSTableViewDelegate
-
+extension SuggestionsPanel: NSTableViewDelegate {
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         guard row < suggestions.count else { return nil }
         let path = suggestions[row]
@@ -366,9 +379,5 @@ final class SuggestionsViewController: NSViewController, NSTableViewDataSource, 
                                          accessibilityDescription: isDir ? "Folder" : "File")
 
         return cell
-    }
-
-    func tableViewSelectionDidChange(_ notification: Notification) {
-        // 선택만 하이라이트, 확정은 더블클릭이나 Tab에서
     }
 }
