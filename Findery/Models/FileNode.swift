@@ -25,8 +25,16 @@ struct FileNode: Identifiable, Hashable {
             .localizedTypeDescriptionKey
         ])
 
-        self.isDirectory = resourceValues?.isDirectory ?? false
         self.isSymlink = resourceValues?.isSymbolicLink ?? false
+
+        // 심볼릭 링크가 디렉토리를 가리키는 경우 (/tmp → /private/tmp 등)
+        if self.isSymlink {
+            var isDir: ObjCBool = false
+            FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
+            self.isDirectory = isDir.boolValue
+        } else {
+            self.isDirectory = resourceValues?.isDirectory ?? false
+        }
         self.size = Int64(resourceValues?.fileSize ?? 0)
         self.dateModified = resourceValues?.contentModificationDate ?? Date.distantPast
         self.kind = resourceValues?.localizedTypeDescription ?? "Unknown"

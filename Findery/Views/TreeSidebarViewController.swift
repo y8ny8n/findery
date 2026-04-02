@@ -177,16 +177,25 @@ final class TreeNode {
         let hasSubdirectories: Bool
         if let contents = try? FileManager.default.contentsOfDirectory(
             at: url,
-            includingPropertiesForKeys: [.isDirectoryKey],
+            includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey],
             options: options
         ) {
-            hasSubdirectories = contents.contains { url in
-                (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
-            }
+            hasSubdirectories = contents.contains { TreeNode.isDirectoryURL($0) }
         } else {
             hasSubdirectories = false
         }
         self.isExpandable = hasSubdirectories
+    }
+
+    private static func isDirectoryURL(_ url: URL) -> Bool {
+        let rv = try? url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+        if rv?.isDirectory == true { return true }
+        if rv?.isSymbolicLink == true {
+            var isDir: ObjCBool = false
+            FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
+            return isDir.boolValue
+        }
+        return false
     }
 
     func loadChildren() {
@@ -196,14 +205,12 @@ final class TreeNode {
         let options: FileManager.DirectoryEnumerationOptions = TreeNode.showHiddenFiles ? [] : [.skipsHiddenFiles]
         guard let contents = try? FileManager.default.contentsOfDirectory(
             at: url,
-            includingPropertiesForKeys: [.isDirectoryKey],
+            includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey],
             options: options
         ) else { return }
 
         children = contents
-            .filter { url in
-                (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
-            }
+            .filter { TreeNode.isDirectoryURL($0) }
             .map { TreeNode(url: $0) }
             .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
