@@ -165,10 +165,14 @@ final class AddressBarView: NSView, NSTextFieldDelegate {
         } else {
             popover.contentSize = newSize
         }
-        // popover가 포커스를 빼앗으므로 즉시 텍스트 필드로 복원
+        // popover가 포커스를 빼앗으므로 즉시 텍스트 필드로 복원 (커서 위치 유지)
+        let cursorRange = textField.currentEditor()?.selectedRange
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.window?.makeFirstResponder(self.textField)
+            if let range = cursorRange {
+                self.textField.currentEditor()?.selectedRange = range
+            }
         }
     }
 
