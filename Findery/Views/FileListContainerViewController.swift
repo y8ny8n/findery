@@ -178,6 +178,24 @@ final class FileListContainerViewController: NSViewController {
         addressBar.setPath(url)
     }
 
+    func animateRemovalOfSelected(completion: @escaping () -> Void) {
+        let selectedRows = tableView.selectedRowIndexes
+        guard !selectedRows.isEmpty else {
+            completion()
+            return
+        }
+
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.25
+            context.allowsImplicitAnimation = true
+            for row in selectedRows {
+                if let rowView = tableView.rowView(atRow: row, makeIfNecessary: false) {
+                    rowView.animator().alphaValue = 0
+                }
+            }
+        }, completionHandler: completion)
+    }
+
     func focusAddressBar() {
         addressBar.focus()
     }

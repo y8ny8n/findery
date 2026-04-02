@@ -371,12 +371,20 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
     @objc private func moveToTrashAction() {
         let urls = fileListContainerVC.selectedFileURLs
         guard !urls.isEmpty else { return }
-        do {
-            let trashedPairs = try fileOperations.moveToTrashWithUndo(urls: urls)
-            undoStack.append(.trash(trashedURLs: trashedPairs))
-            refreshCurrentDirectory()
-        } catch {
-            showError(error)
+
+        // 선택된 행 페이드아웃 애니메이션
+        fileListContainerVC.animateRemovalOfSelected { [weak self] in
+            guard let self else { return }
+            do {
+                let trashedPairs = try self.fileOperations.moveToTrashWithUndo(urls: urls)
+                self.undoStack.append(.trash(trashedURLs: trashedPairs))
+                // 휴지통 사운드
+                NSSound(contentsOfFile: "/System/Library/Components/CoreAudio.component/Contents/SharedSupport/SystemSounds/dock/drag to trash.aif", byReference: true)?.play()
+                self.refreshCurrentDirectory()
+            } catch {
+                self.refreshCurrentDirectory()
+                self.showError(error)
+            }
         }
     }
 
