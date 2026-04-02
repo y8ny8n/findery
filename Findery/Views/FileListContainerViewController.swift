@@ -420,10 +420,15 @@ final class FileListContainerViewController: NSViewController {
         textField.drawsBackground = true
         textField.backgroundColor = .controlBackgroundColor
         textField.focusRingType = .none
+        textField.font = NSFont.systemFont(ofSize: 14)
         textField.wantsLayer = true
         textField.layer?.cornerRadius = 6
         textField.layer?.borderWidth = 2
         textField.layer?.borderColor = NSColor.controlAccentColor.cgColor
+
+        // 행 높이 확장
+        let editingRowHeight: CGFloat = 34
+        tableView.noteHeightOfRows(withIndexesChanged: IndexSet(integer: row))
 
         // 공식 NSTableView 편집 API 사용 (전체 선택으로 시작)
         tableView.editColumn(nameColIndex, row: row, with: nil, select: true)
@@ -448,8 +453,16 @@ final class FileListContainerViewController: NSViewController {
         textField.isBordered = false
         textField.isBezeled = false
         textField.drawsBackground = false
+        textField.font = NSFont.systemFont(ofSize: 13)
         textField.layer?.cornerRadius = 0
         textField.layer?.borderWidth = 0
+
+        // 행 높이 복원
+        if let row = files.firstIndex(where: { $0.url == renamingURL }) {
+            DispatchQueue.main.async { [weak self] in
+                self?.tableView.noteHeightOfRows(withIndexesChanged: IndexSet(integer: row))
+            }
+        }
 
         guard let url = renamingURL,
               let node = files.first(where: { $0.url == url }) else {
@@ -550,6 +563,13 @@ extension FileListContainerViewController: NSTableViewDataSource {
 
 // MARK: - NSTableViewDelegate
 extension FileListContainerViewController: NSTableViewDelegate {
+
+    func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
+        if let url = renamingURL, row < files.count, files[row].url == url {
+            return 34
+        }
+        return 28
+    }
 
     func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
         let id = NSUserInterfaceItemIdentifier("RoundedRow")
@@ -734,8 +754,14 @@ extension FileListContainerViewController: NSTextFieldDelegate {
                 textField.isBordered = false
                 textField.isBezeled = false
                 textField.drawsBackground = false
+                textField.font = NSFont.systemFont(ofSize: 13)
                 textField.layer?.cornerRadius = 0
                 textField.layer?.borderWidth = 0
+                if let row = files.firstIndex(where: { $0.url == renamingURL }) {
+                    DispatchQueue.main.async { [weak self] in
+                        self?.tableView.noteHeightOfRows(withIndexesChanged: IndexSet(integer: row))
+                    }
+                }
                 renamingURL = nil
                 onRenameEnded?()
                 view.window?.makeFirstResponder(tableView)
