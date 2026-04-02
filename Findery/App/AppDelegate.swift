@@ -23,6 +23,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return wc
     }
 
+    @IBAction func newWindow(_ sender: Any?) {
+        let wc = createWindowController()
+        wc.window?.makeKeyAndOrderFront(nil)
+    }
+
     @IBAction func newTab(_ sender: Any?) {
         guard let currentWindow = NSApp.keyWindow else { return }
         let wc = createWindowController()

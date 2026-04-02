@@ -126,6 +126,8 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
 
         // File menu
         let fileMenu = NSMenu(title: "File")
+        let newWindowItem = NSMenuItem(title: "새 윈도우", action: #selector(AppDelegate.newWindow(_:)), keyEquivalent: "n")
+        fileMenu.addItem(newWindowItem)
         let newTabItem = NSMenuItem(title: "새 탭", action: #selector(AppDelegate.newTab(_:)), keyEquivalent: "t")
         fileMenu.addItem(newTabItem)
         fileMenu.addItem(item("새 폴더", action: #selector(newFolderAction), key: "n", modifiers: [.command, .shift]))
