@@ -412,10 +412,15 @@ final class FileListContainerViewController: NSViewController {
               let cellView = tableView.view(atColumn: nameColIndex, row: row, makeIfNecessary: false) as? NSTableCellView,
               let textField = cellView.textField else { return }
 
-        // 편집 모드 활성화
+        // 편집 모드 활성화 (Finder 스타일 둥근 모서리)
         textField.isEditable = true
         textField.isBordered = true
+        textField.isBezeled = true
+        textField.bezelStyle = .roundedBezel
         textField.drawsBackground = true
+        textField.focusRingType = .none
+        textField.wantsLayer = true
+        textField.layer?.cornerRadius = 6
 
         // 공식 NSTableView 편집 API 사용 (전체 선택으로 시작)
         tableView.editColumn(nameColIndex, row: row, with: nil, select: true)
@@ -438,7 +443,9 @@ final class FileListContainerViewController: NSViewController {
     private func finishRenaming(textField: NSTextField) {
         textField.isEditable = false
         textField.isBordered = false
+        textField.isBezeled = false
         textField.drawsBackground = false
+        textField.layer?.cornerRadius = 0
 
         guard let url = renamingURL,
               let node = files.first(where: { $0.url == url }) else {
@@ -721,7 +728,9 @@ extension FileListContainerViewController: NSTextFieldDelegate {
                 textField.stringValue = node.name
                 textField.isEditable = false
                 textField.isBordered = false
+                textField.isBezeled = false
                 textField.drawsBackground = false
+                textField.layer?.cornerRadius = 0
                 renamingURL = nil
                 onRenameEnded?()
                 view.window?.makeFirstResponder(tableView)
