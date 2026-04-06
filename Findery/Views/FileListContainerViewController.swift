@@ -60,8 +60,6 @@ final class FileListContainerViewController: NSViewController {
     private var allFiles: [FileNode] = []
     private var files: [FileNode] = []
     private var iconCache: IconCache?
-    private var sortKey: SortKey = .name
-    private var sortAscending = true
 
     var onNavigate: ((URL) -> Void)?
     var contextMenuProvider: (([URL]) -> NSMenu)?
@@ -83,16 +81,24 @@ final class FileListContainerViewController: NSViewController {
         forwardButton.isEnabled = canGoForward
     }
 
-    enum SortKey: String {
-        case name, size, date, kind
-    }
-
     override func loadView() {
         view = NSView()
         setupNavAndAddressBar()
         setupSearchBar()
         setupTableView()
         setupStatusBar()
+
+        NotificationCenter.default.addObserver(self, selector: #selector(thumbnailLoaded(_:)), name: .finderyThumbnailLoaded, object: nil)
+    }
+
+    @objc private func thumbnailLoaded(_ notification: Notification) {
+        guard let url = notification.object as? URL else { return }
+        let nameColIndex = tableView.column(withIdentifier: NSUserInterfaceItemIdentifier("Name"))
+        guard nameColIndex >= 0,
+              let row = files.firstIndex(where: { $0.url == url }) else { return }
+        if let cellView = tableView.view(atColumn: nameColIndex, row: row, makeIfNecessary: false) as? NSTableCellView {
+            cellView.imageView?.image = iconCache?.icon(for: files[row])
+        }
     }
 
     private func setupNavAndAddressBar() {
@@ -313,16 +319,49 @@ final class FileListContainerViewController: NSViewController {
         // 검색 필터 유지
         let query = searchField.stringValue.lowercased()
         self.files = query.isEmpty ? items : items.filter { $0.name.lowercased().contains(query) }
+
+        // 현재 정렬 상태 재적용
+        applySortToFiles()
+
         tableView.reloadData()
         statusBar.update(itemCount: items.count, totalSize: items.reduce(0) { $0 + $1.size })
 
         if !selectedURLs.isEmpty {
-            let newSelection = IndexSet(items.enumerated().compactMap { index, node in
+            let newSelection = IndexSet(files.enumerated().compactMap { index, node in
                 selectedURLs.contains(node.url) ? index : nil
             })
             if !newSelection.isEmpty {
                 tableView.selectRowIndexes(newSelection, byExtendingSelection: false)
             }
+        }
+    }
+
+    /// 다운로드 폴더 진입 시 날짜순, 그 외 이름순 기본 정렬 적용
+    func applyDefaultSort(for url: URL) {
+        let downloadsURL = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
+        let isDownloads = (url.standardizedFileURL == downloadsURL?.standardizedFileURL)
+
+        if isDownloads {
+            let descriptor = NSSortDescriptor(key: "Date", ascending: false)
+            tableView.sortDescriptors = [descriptor]
+        } else {
+            let descriptor = NSSortDescriptor(key: "Name", ascending: true)
+            tableView.sortDescriptors = [descriptor]
+        }
+    }
+
+    private func applySortToFiles() {
+        guard let sort = tableView.sortDescriptors.first, let key = sort.key else { return }
+        files.sort { a, b in
+            let result: ComparisonResult
+            switch key {
+            case "Name": result = a.name.localizedStandardCompare(b.name)
+            case "Size": result = a.size < b.size ? .orderedAscending : (a.size > b.size ? .orderedDescending : .orderedSame)
+            case "Date": result = a.dateModified < b.dateModified ? .orderedAscending : (a.dateModified > b.dateModified ? .orderedDescending : .orderedSame)
+            case "Kind": result = a.kind.localizedStandardCompare(b.kind)
+            default: result = .orderedSame
+            }
+            return sort.ascending ? result == .orderedAscending : result == .orderedDescending
         }
     }
 
@@ -545,18 +584,7 @@ extension FileListContainerViewController: NSTableViewDataSource {
     }
 
     func tableView(_ tableView: NSTableView, sortDescriptorsDidChange oldDescriptors: [NSSortDescriptor]) {
-        guard let sort = tableView.sortDescriptors.first, let key = sort.key else { return }
-        files.sort { a, b in
-            let result: ComparisonResult
-            switch key {
-            case "Name": result = a.name.localizedStandardCompare(b.name)
-            case "Size": result = a.size < b.size ? .orderedAscending : (a.size > b.size ? .orderedDescending : .orderedSame)
-            case "Date": result = a.dateModified < b.dateModified ? .orderedAscending : (a.dateModified > b.dateModified ? .orderedDescending : .orderedSame)
-            case "Kind": result = a.kind.localizedStandardCompare(b.kind)
-            default: result = .orderedSame
-            }
-            return sort.ascending ? result == .orderedAscending : result == .orderedDescending
-        }
+        applySortToFiles()
         tableView.reloadData()
     }
 }

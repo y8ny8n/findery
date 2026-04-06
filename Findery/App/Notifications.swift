@@ -10,4 +10,5 @@ extension Notification.Name {
     static let finderyToggleHidden = Notification.Name("finderyToggleHidden")
     static let finderyFavoritesChanged = Notification.Name("finderyFavoritesChanged")
     static let finderyMoveToTrash = Notification.Name("finderyMoveToTrash")
+    static let finderyThumbnailLoaded = Notification.Name("finderyThumbnailLoaded")
 }

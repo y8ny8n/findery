@@ -37,10 +37,7 @@ final class FileSystemController {
         return contents
             .map { FileNode(url: $0) }
             .sorted { lhs, rhs in
-                if lhs.isDirectory != rhs.isDirectory {
-                    return lhs.isDirectory
-                }
-                return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+                lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
             }
     }
 

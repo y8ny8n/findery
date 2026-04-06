@@ -81,6 +81,7 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
 
         splitViewController.addSplitViewItem(sidebarItem)
         splitViewController.addSplitViewItem(contentItem)
+        splitViewController.splitView.autosaveName = "FinderySplitView"
 
         window?.contentViewController = splitViewController
 
@@ -411,6 +412,8 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         navigationController.navigate(to: url)
         fileWatcher.watch(directory: url)
 
+        fileListContainerVC.applyDefaultSort(for: url)
+
         Task { @MainActor in
             let items = await fileSystemController.enumerate(directory: url)
             fileListContainerVC.updateFiles(items, iconCache: iconCache)
@@ -455,6 +458,9 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
     private func navigateWithoutPush(_ url: URL) {
         currentURL = url
         fileWatcher.watch(directory: url)
+
+        fileListContainerVC.applyDefaultSort(for: url)
+
         Task { @MainActor in
             let items = await fileSystemController.enumerate(directory: url)
             fileListContainerVC.updateFiles(items, iconCache: iconCache)
