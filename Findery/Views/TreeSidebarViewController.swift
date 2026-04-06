@@ -425,11 +425,41 @@ extension TreeSidebarViewController: NSOutlineViewDelegate {
     func outlineView(_ outlineView: NSOutlineView, shouldSelectItem item: Any) -> Bool {
         if let sidebarItem = item as? SidebarItem {
             if sidebarItem.isGroup {
-                // 그룹: 선택 불가, 펼침/접기만
-                if outlineView.isItemExpanded(sidebarItem) {
-                    outlineView.collapseItem(sidebarItem)
-                } else {
+                // 그룹: 선택 불가, 펼침/접기
+                let expanding = !outlineView.isItemExpanded(sidebarItem)
+                if expanding {
                     outlineView.expandItem(sidebarItem)
+                    // 자식 행 fade-in
+                    if let children = sidebarItem.children {
+                        for (i, _) in children.enumerated() {
+                            let childRow = outlineView.row(forItem: children[i])
+                            guard childRow >= 0,
+                                  let rowView = outlineView.rowView(atRow: childRow, makeIfNecessary: false) else { continue }
+                            rowView.alphaValue = 0
+                            NSAnimationContext.runAnimationGroup { context in
+                                context.duration = 0.2 + Double(i) * 0.04
+                                context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                                rowView.animator().alphaValue = 1
+                            }
+                        }
+                    }
+                } else {
+                    // 접기: 자식 행 fade-out 후 collapse
+                    if let children = sidebarItem.children {
+                        for child in children {
+                            let childRow = outlineView.row(forItem: child)
+                            guard childRow >= 0,
+                                  let rowView = outlineView.rowView(atRow: childRow, makeIfNecessary: false) else { continue }
+                            NSAnimationContext.runAnimationGroup { context in
+                                context.duration = 0.15
+                                context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+                                rowView.animator().alphaValue = 0
+                            }
+                        }
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        outlineView.collapseItem(sidebarItem)
+                    }
                 }
                 return false
             }
