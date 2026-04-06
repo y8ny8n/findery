@@ -24,9 +24,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @IBAction func newWindow(_ sender: Any?) {
+        let existingFrame = NSApp.keyWindow?.frame
         let wc = createWindowController()
-        wc.window?.tabbingMode = .disallowed
-        wc.window?.makeKeyAndOrderFront(nil)
+        guard let window = wc.window else { return }
+        window.tabbingMode = .disallowed
+        if let frame = existingFrame {
+            let offset: CGFloat = 26
+            window.setFrameOrigin(NSPoint(x: frame.origin.x + offset, y: frame.origin.y - offset))
+        }
+        window.makeKeyAndOrderFront(nil)
     }
 
     @IBAction func newTab(_ sender: Any?) {
