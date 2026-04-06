@@ -220,14 +220,15 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
 
     private func setupNotifications() {
         let nc = NotificationCenter.default
-        nc.addObserver(self, selector: #selector(goBackAction), name: .finderyGoBack, object: nil)
-        nc.addObserver(self, selector: #selector(goForwardAction), name: .finderyGoForward, object: nil)
-        nc.addObserver(self, selector: #selector(goUpAction), name: .finderyGoUp, object: nil)
-        nc.addObserver(self, selector: #selector(handleFileCopy(_:)), name: .finderyCopy, object: nil)
-        nc.addObserver(self, selector: #selector(handleFileCut(_:)), name: .finderyCut, object: nil)
-        nc.addObserver(self, selector: #selector(handleFilePaste), name: .finderyPaste, object: nil)
-        nc.addObserver(self, selector: #selector(moveToTrashAction), name: .finderyMoveToTrash, object: nil)
-        nc.addObserver(self, selector: #selector(handleToggleHidden(_:)), name: .finderyToggleHidden, object: nil)
+        let sender = fileListContainerVC
+        nc.addObserver(self, selector: #selector(goBackAction), name: .finderyGoBack, object: sender)
+        nc.addObserver(self, selector: #selector(goForwardAction), name: .finderyGoForward, object: sender)
+        nc.addObserver(self, selector: #selector(goUpAction), name: .finderyGoUp, object: sender)
+        nc.addObserver(self, selector: #selector(handleFileCopy(_:)), name: .finderyCopy, object: sender)
+        nc.addObserver(self, selector: #selector(handleFileCut(_:)), name: .finderyCut, object: sender)
+        nc.addObserver(self, selector: #selector(handleFilePaste), name: .finderyPaste, object: sender)
+        nc.addObserver(self, selector: #selector(moveToTrashAction), name: .finderyMoveToTrash, object: sender)
+        nc.addObserver(self, selector: #selector(handleToggleHidden(_:)), name: .finderyToggleHidden, object: sender)
     }
 
     @objc private func toggleHiddenAction() {
@@ -235,21 +236,21 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
     }
 
     @objc private func handleToggleHidden(_ notification: Notification) {
-        guard let show = notification.object as? Bool else { return }
+        guard let show = notification.userInfo?["show"] as? Bool else { return }
         fileSystemController.showHiddenFiles = show
         treeSidebarVC.reloadTree()
         refreshCurrentDirectory()
     }
 
     @objc private func handleFileCopy(_ notification: Notification) {
-        guard let urls = notification.object as? [URL], !urls.isEmpty else { return }
+        guard let urls = notification.userInfo?["urls"] as? [URL], !urls.isEmpty else { return }
         clipboardURLs = urls
         clipboardIsCut = false
         fileOperations.copyToClipboard(urls: urls)
     }
 
     @objc private func handleFileCut(_ notification: Notification) {
-        guard let urls = notification.object as? [URL], !urls.isEmpty else { return }
+        guard let urls = notification.userInfo?["urls"] as? [URL], !urls.isEmpty else { return }
         clipboardURLs = urls
         clipboardIsCut = true
         clipboardSourceDir = currentURL

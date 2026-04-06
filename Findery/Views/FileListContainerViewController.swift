@@ -183,13 +183,13 @@ final class FileListContainerViewController: NSViewController {
     }
 
     @objc private func backTapped() {
-        NotificationCenter.default.post(name: .finderyGoBack, object: nil)
+        NotificationCenter.default.post(name: .finderyGoBack, object: self)
     }
     @objc private func forwardTapped() {
-        NotificationCenter.default.post(name: .finderyGoForward, object: nil)
+        NotificationCenter.default.post(name: .finderyGoForward, object: self)
     }
     @objc private func upTapped() {
-        NotificationCenter.default.post(name: .finderyGoUp, object: nil)
+        NotificationCenter.default.post(name: .finderyGoUp, object: self)
     }
     @objc private func toggleFavorite() {
         guard let url = currentURL else { return }
@@ -212,7 +212,7 @@ final class FileListContainerViewController: NSViewController {
     @objc func toggleHiddenFiles() {
         showHiddenFiles.toggle()
         hiddenToggle.contentTintColor = showHiddenFiles ? .controlAccentColor : .secondaryLabelColor
-        NotificationCenter.default.post(name: .finderyToggleHidden, object: showHiddenFiles)
+        NotificationCenter.default.post(name: .finderyToggleHidden, object: self, userInfo: ["show": showHiddenFiles])
     }
 
     private func setupSearchBar() {
@@ -713,10 +713,10 @@ extension FileListContainerViewController: QLPreviewPanelDataSource, QLPreviewPa
             openSelectedItem()
         } else if event.keyCode == 51 && (flags == [] || flags == .command) {
             // Backspace (⌘ 있든 없든) → 뒤로가기
-            NotificationCenter.default.post(name: .finderyGoBack, object: nil)
+            NotificationCenter.default.post(name: .finderyGoBack, object: self)
         } else if event.keyCode == 117 {
             // Forward Delete (fn+Delete) → 휴지통
-            NotificationCenter.default.post(name: .finderyMoveToTrash, object: nil)
+            NotificationCenter.default.post(name: .finderyMoveToTrash, object: self)
         } else {
             super.keyDown(with: event)
         }
@@ -817,17 +817,17 @@ extension FileListContainerViewController {
     @objc func copy(_ sender: Any?) {
         let urls = selectedFileURLs
         guard !urls.isEmpty else { return }
-        NotificationCenter.default.post(name: .finderyCopy, object: urls)
+        NotificationCenter.default.post(name: .finderyCopy, object: self, userInfo: ["urls": urls])
     }
 
     @objc func cut(_ sender: Any?) {
         let urls = selectedFileURLs
         guard !urls.isEmpty else { return }
-        NotificationCenter.default.post(name: .finderyCut, object: urls)
+        NotificationCenter.default.post(name: .finderyCut, object: self, userInfo: ["urls": urls])
     }
 
     @objc func paste(_ sender: Any?) {
-        NotificationCenter.default.post(name: .finderyPaste, object: nil)
+        NotificationCenter.default.post(name: .finderyPaste, object: self)
     }
 }
 
