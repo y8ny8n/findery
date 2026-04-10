@@ -3,9 +3,11 @@ import AppKit
 class AppDelegate: NSObject, NSApplicationDelegate {
 
     var windowControllers: [MainWindowController] = []
+    private lazy var preferencesWindowController = PreferencesWindowController()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.registerServicesMenuSendTypes([.fileURL, .string], returnTypes: [])
+        // Services / Writing Tools 메뉴 비활성화
+        NSApp.servicesMenu = nil
 
         let wc = createWindowController()
         wc.window?.makeKeyAndOrderFront(nil)
@@ -41,5 +43,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let newWindow = wc.window else { return }
         currentWindow.addTabbedWindow(newWindow, ordered: .above)
         newWindow.makeKeyAndOrderFront(nil)
+    }
+
+    @objc func showPreferences(_ sender: Any?) {
+        preferencesWindowController.showAndActivate()
     }
 }

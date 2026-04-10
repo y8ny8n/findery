@@ -18,6 +18,7 @@
 		4282ECBCE37A00B68A838F5C /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69C38B990D44E784536FCC1E /* Notifications.swift */; };
 		4FA902025793FAD2394FC02E /* FileSystemControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE453AB1E585F625C2BD673 /* FileSystemControllerTests.swift */; };
 		5CB7FBD14A54DFEFD69E2FB8 /* NavigationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61451F8C3A80AC0B70380B34 /* NavigationState.swift */; };
+		60841D69AC2F8F4A8CBD1F02 /* PreferencesManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 664D0EFB36535D574B79ED25 /* PreferencesManager.swift */; };
 		8E40E160963B14BF3521370C /* NavigationStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A31E52D4F29518F569EDF457 /* NavigationStateTests.swift */; };
 		917102D84162E0B9C6C1C85D /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = A58C5B44F53B90F738F5D2B1 /* main.swift */; };
 		9361F887A384BECBF9438930 /* MainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7AD18B3D9CFD337E5677DE /* MainWindowController.swift */; };
@@ -27,6 +28,7 @@
 		C779FE79F1DDFA8E25B62379 /* FileSystemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29CAC095B2ACF1F04141527B /* FileSystemController.swift */; };
 		CD12F4DF6EECA11475583510 /* IconCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 083CE45EFAFA28F667212C0E /* IconCache.swift */; };
 		D0F5A455FEAFC9B8C5E935F8 /* FileListContainerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0B2EF0B7255B2BE04D74447 /* FileListContainerViewController.swift */; };
+		D5D0741A3B4B6D13E1471AD8 /* PreferencesWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4591C554097E7F7F10B40C9B /* PreferencesWindowController.swift */; };
 		D9C30209B82B847825F1C475 /* StatusBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A63D383807172DB2DB74DA1A /* StatusBarView.swift */; };
 		EAE5F65A99AA6F8A155687FA /* FavoritesManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2B8AD99CA7E35448CC1CF11 /* FavoritesManager.swift */; };
 		F51EBD5B744671EA9881F2F2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABAE572F03CA42271B9A855F /* AppDelegate.swift */; };
@@ -54,9 +56,11 @@
 		3653A6F8C8FFC3512F27148C /* FinderyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FinderyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3CF2CD86BF22845AE7FBE610 /* FileOperations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileOperations.swift; sourceTree = "<group>"; };
 		4076AB78647F409B0A2D14E6 /* TreeSidebarViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreeSidebarViewController.swift; sourceTree = "<group>"; };
+		4591C554097E7F7F10B40C9B /* PreferencesWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindowController.swift; sourceTree = "<group>"; };
 		51AC1C88AAFF42E3424171BB /* NavigationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationController.swift; sourceTree = "<group>"; };
 		61451F8C3A80AC0B70380B34 /* NavigationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationState.swift; sourceTree = "<group>"; };
 		623B5B1CE5AEC09CC1B21693 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		664D0EFB36535D574B79ED25 /* PreferencesManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesManager.swift; sourceTree = "<group>"; };
 		69C38B990D44E784536FCC1E /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
 		861E0DC8B58DEC2093C0A668 /* FileOperationsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileOperationsTests.swift; sourceTree = "<group>"; };
 		8CBD3BF7729AC637DA70746D /* AddressBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressBarView.swift; sourceTree = "<group>"; };
@@ -102,6 +106,7 @@
 			children = (
 				8CBD3BF7729AC637DA70746D /* AddressBarView.swift */,
 				B0B2EF0B7255B2BE04D74447 /* FileListContainerViewController.swift */,
+				4591C554097E7F7F10B40C9B /* PreferencesWindowController.swift */,
 				A63D383807172DB2DB74DA1A /* StatusBarView.swift */,
 				4076AB78647F409B0A2D14E6 /* TreeSidebarViewController.swift */,
 			);
@@ -117,6 +122,7 @@
 				DF1B3726386EA32329B1EB97 /* FileWatcher.swift */,
 				083CE45EFAFA28F667212C0E /* IconCache.swift */,
 				51AC1C88AAFF42E3424171BB /* NavigationController.swift */,
+				664D0EFB36535D574B79ED25 /* PreferencesManager.swift */,
 			);
 			path = Controllers;
 			sourceTree = "<group>";
@@ -290,6 +296,8 @@
 				1E661E96D956440CF4D2A998 /* NavigationController.swift in Sources */,
 				5CB7FBD14A54DFEFD69E2FB8 /* NavigationState.swift in Sources */,
 				4282ECBCE37A00B68A838F5C /* Notifications.swift in Sources */,
+				60841D69AC2F8F4A8CBD1F02 /* PreferencesManager.swift in Sources */,
+				D5D0741A3B4B6D13E1471AD8 /* PreferencesWindowController.swift in Sources */,
 				D9C30209B82B847825F1C475 /* StatusBarView.swift in Sources */,
 				2168FD65BD5ED16FAC57B056 /* TreeSidebarViewController.swift in Sources */,
 				917102D84162E0B9C6C1C85D /* main.swift in Sources */,

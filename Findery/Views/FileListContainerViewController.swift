@@ -22,23 +22,32 @@ private final class ServicesTableView: NSTableView {
 
     var fileURLsProvider: (() -> [URL])?
 
+    // Services / Writing Tools / Summarize 메뉴 주입 차단
     override func validRequestor(forSendType sendType: NSPasteboard.PasteboardType?, returnType: NSPasteboard.PasteboardType?) -> Any? {
-        let validSend = sendType == nil || sendType == .fileURL || sendType == .string
-        let validReturn = returnType == nil
-        if validSend && validReturn {
-            if let urls = fileURLsProvider?(), !urls.isEmpty {
-                return self
-            }
-        }
-        return super.validRequestor(forSendType: sendType, returnType: returnType)
+        return nil
     }
 
-    @objc func writeSelection(to pboard: NSPasteboard, types: [NSPasteboard.PasteboardType]) -> Bool {
-        guard let urls = fileURLsProvider?(), !urls.isEmpty else { return false }
-        pboard.clearContents()
-        pboard.writeObjects(urls as [NSURL])
-        pboard.setString(urls.map(\.path).joined(separator: "\n"), forType: .string)
-        return true
+    override func willOpenMenu(_ menu: NSMenu, with event: NSEvent) {
+        super.willOpenMenu(menu, with: event)
+        // macOS가 자동 주입하는 시스템 메뉴 항목 제거
+        let systemTitles: Set<String> = ["Services", "서비스", "Show Writing Tools", "Writing Tools",
+                                          "쓰기 도구 보기", "Summarize", "요약"]
+        menu.items.removeAll { item in
+            if let title = item.title as String?,
+               systemTitles.contains(title) { return true }
+            if item.submenu?.title == "Services" || item.submenu?.title == "서비스" { return true }
+            return false
+        }
+        // 연속된 구분선 정리
+        while let first = menu.items.first, first.isSeparatorItem { menu.removeItem(first) }
+        while let last = menu.items.last, last.isSeparatorItem { menu.removeItem(last) }
+        var prev: NSMenuItem?
+        for item in menu.items {
+            if item.isSeparatorItem, prev?.isSeparatorItem == true {
+                menu.removeItem(item)
+            }
+            prev = item
+        }
     }
 }
 
@@ -336,23 +345,23 @@ final class FileListContainerViewController: NSViewController {
         }
     }
 
-    /// 다운로드 폴더 진입 시 날짜순, 그 외 이름순 기본 정렬 적용
     func applyDefaultSort(for url: URL) {
-        let downloadsURL = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
-        let isDownloads = (url.standardizedFileURL == downloadsURL?.standardizedFileURL)
-
-        if isDownloads {
-            let descriptor = NSSortDescriptor(key: "Date", ascending: false)
-            tableView.sortDescriptors = [descriptor]
-        } else {
-            let descriptor = NSSortDescriptor(key: "Name", ascending: true)
-            tableView.sortDescriptors = [descriptor]
-        }
+        let prefs = PreferencesManager.shared
+        let descriptor = NSSortDescriptor(key: prefs.defaultSortColumn, ascending: prefs.defaultSortAscending)
+        tableView.sortDescriptors = [descriptor]
     }
 
     private func applySortToFiles() {
         guard let sort = tableView.sortDescriptors.first, let key = sort.key else { return }
+        let foldersFirst = PreferencesManager.shared.foldersFirst
+
         files.sort { a, b in
+            // 폴더 우선 정렬
+            if foldersFirst {
+                if a.isDirectory && !b.isDirectory { return true }
+                if !a.isDirectory && b.isDirectory { return false }
+            }
+
             let result: ComparisonResult
             switch key {
             case "Name": result = a.name.localizedStandardCompare(b.name)
@@ -717,6 +726,13 @@ extension FileListContainerViewController: QLPreviewPanelDataSource, QLPreviewPa
         } else if event.keyCode == 117 {
             // Forward Delete (fn+Delete) → 휴지통
             NotificationCenter.default.post(name: .finderyMoveToTrash, object: self)
+        } else if event.keyCode == 124 { // → Right arrow: 폴더 진입
+            if let row = tableView.selectedRowIndexes.first,
+               row < files.count, files[row].isDirectory {
+                onNavigate?(files[row].url)
+            }
+        } else if event.keyCode == 123 { // ← Left arrow: 상위 폴더
+            NotificationCenter.default.post(name: .finderyGoUp, object: self)
         } else {
             super.keyDown(with: event)
         }

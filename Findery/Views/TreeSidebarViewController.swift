@@ -11,6 +11,7 @@ final class TreeSidebarViewController: NSViewController {
 
     private let outlineView = NSOutlineView()
     private let scrollView = NSScrollView()
+    private let bottomBar = NSView()
 
     private var sections: [SidebarSection] = []
 
@@ -18,6 +19,7 @@ final class TreeSidebarViewController: NSViewController {
         view = NSView()
         setupScrollView()
         setupOutlineView()
+        setupBottomBar()
         buildSections()
 
         NotificationCenter.default.addObserver(self, selector: #selector(favoritesChanged),
@@ -37,10 +39,53 @@ final class TreeSidebarViewController: NSViewController {
 
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         ])
+    }
+
+    private func setupBottomBar() {
+        bottomBar.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(bottomBar)
+
+        let separator = NSBox()
+        separator.boxType = .separator
+        separator.translatesAutoresizingMaskIntoConstraints = false
+        bottomBar.addSubview(separator)
+
+        let settingsButton = NSButton()
+        settingsButton.bezelStyle = .accessoryBarAction
+        settingsButton.isBordered = false
+        settingsButton.image = NSImage(systemSymbolName: "gearshape", accessibilityDescription: "환경설정")
+        settingsButton.imagePosition = .imageOnly
+        settingsButton.imageScaling = .scaleProportionallyDown
+        settingsButton.contentTintColor = .secondaryLabelColor
+        settingsButton.target = self
+        settingsButton.action = #selector(openPreferences)
+        settingsButton.toolTip = "환경설정"
+        settingsButton.translatesAutoresizingMaskIntoConstraints = false
+        bottomBar.addSubview(settingsButton)
+
+        NSLayoutConstraint.activate([
+            bottomBar.topAnchor.constraint(equalTo: scrollView.bottomAnchor),
+            bottomBar.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            bottomBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            bottomBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            bottomBar.heightAnchor.constraint(equalToConstant: 28),
+
+            separator.topAnchor.constraint(equalTo: bottomBar.topAnchor),
+            separator.leadingAnchor.constraint(equalTo: bottomBar.leadingAnchor),
+            separator.trailingAnchor.constraint(equalTo: bottomBar.trailingAnchor),
+
+            settingsButton.leadingAnchor.constraint(equalTo: bottomBar.leadingAnchor, constant: 8),
+            settingsButton.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor, constant: 1),
+            settingsButton.widthAnchor.constraint(equalToConstant: 24),
+            settingsButton.heightAnchor.constraint(equalToConstant: 24),
+        ])
+    }
+
+    @objc private func openPreferences() {
+        (NSApp.delegate as? AppDelegate)?.showPreferences(nil)
     }
 
     private func setupOutlineView() {

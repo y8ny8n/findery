@@ -65,7 +65,16 @@ final class FileOperations {
     }
 
     func openFile(_ url: URL) {
-        NSWorkspace.shared.open(url)
+        let ext = url.pathExtension.lowercased()
+        if !ext.isEmpty, let appURL = PreferencesManager.shared.appURL(forExtension: ext) {
+            NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: NSWorkspace.OpenConfiguration())
+        } else {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    func openFiles(_ urls: [URL], withApp appURL: URL) {
+        NSWorkspace.shared.open(urls, withApplicationAt: appURL, configuration: NSWorkspace.OpenConfiguration())
     }
 
     // MARK: - Clipboard

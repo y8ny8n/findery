@@ -123,12 +123,8 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
         appMenu.addItem(withTitle: "Findery에 관하여", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         appMenu.addItem(NSMenuItem.separator())
 
-        let servicesMenu = NSMenu(title: "Services")
-        let servicesItem = NSMenuItem(title: "서비스", action: nil, keyEquivalent: "")
-        servicesItem.submenu = servicesMenu
-        appMenu.addItem(servicesItem)
-        NSApp.servicesMenu = servicesMenu
-
+        let prefsItem = NSMenuItem(title: "환경설정…", action: #selector(AppDelegate.showPreferences(_:)), keyEquivalent: ",")
+        appMenu.addItem(prefsItem)
         appMenu.addItem(NSMenuItem.separator())
         appMenu.addItem(withTitle: "Findery 종료", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         let appMenuItem = NSMenuItem()
@@ -273,52 +269,46 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
     private func buildContextMenu(for urls: [URL]) -> NSMenu {
         let menu = NSMenu()
 
+        // ── 빈 공간 우클릭 ──
         if urls.isEmpty {
             menu.addItem(withTitle: "새 폴더", action: #selector(newFolderAction), keyEquivalent: "").target = self
-            menu.addItem(NSMenuItem.separator())
+            let newFileItem = NSMenuItem(title: "새 파일", action: #selector(newFileAction), keyEquivalent: "")
+            newFileItem.target = self
+            menu.addItem(newFileItem)
             if !clipboardURLs.isEmpty {
+                menu.addItem(NSMenuItem.separator())
                 let pasteTitle = clipboardIsCut ? "여기에 이동" : "여기에 붙여넣기"
                 menu.addItem(withTitle: pasteTitle, action: #selector(pasteAction), keyEquivalent: "").target = self
             }
             menu.addItem(NSMenuItem.separator())
+            if let dir = currentURL {
+                let termItem = NSMenuItem(title: "터미널에서 열기", action: #selector(contextOpenInTerminal(_:)), keyEquivalent: "")
+                termItem.target = self
+                termItem.representedObject = dir
+                menu.addItem(termItem)
+                let pathItem = NSMenuItem(title: "경로 복사", action: #selector(contextCopyPath(_:)), keyEquivalent: "")
+                pathItem.target = self
+                pathItem.representedObject = dir
+                menu.addItem(pathItem)
+                menu.addItem(NSMenuItem.separator())
+            }
             menu.addItem(withTitle: "새로고침", action: #selector(refreshAction), keyEquivalent: "").target = self
             return menu
         }
 
+        // ── 파일/폴더 선택 시 ──
+
+        // 1. 열기 / 다음으로 열기
         if urls.count == 1, let url = urls.first {
             let isDir = (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
-            if isDir {
-                let openItem = NSMenuItem(title: "열기", action: #selector(contextOpenFolder(_:)), keyEquivalent: "")
-                openItem.target = self
-                openItem.representedObject = url
-                menu.addItem(openItem)
-            } else {
-                let openItem = NSMenuItem(title: "열기", action: #selector(contextOpenFile(_:)), keyEquivalent: "")
-                openItem.target = self
-                openItem.representedObject = url
-                menu.addItem(openItem)
-            }
+            let openItem = NSMenuItem(title: "열기", action: isDir ? #selector(contextOpenFolder(_:)) : #selector(contextOpenFile(_:)), keyEquivalent: "")
+            openItem.target = self
+            openItem.representedObject = url
+            menu.addItem(openItem)
 
-            // "다음으로 열기" 서브메뉴
-            let openWithItem = NSMenuItem(title: "다음으로 열기", action: nil, keyEquivalent: "")
-            let openWithMenu = NSMenu(title: "Open With")
-            let appURLs = NSWorkspace.shared.urlsForApplications(toOpen: url)
-            for appURL in appURLs.prefix(15) {
-                let appName = appURL.deletingPathExtension().lastPathComponent
-                let appItem = NSMenuItem(title: appName, action: #selector(contextOpenWith(_:)), keyEquivalent: "")
-                appItem.target = self
-                appItem.representedObject = ["file": url, "app": appURL]
-                appItem.image = NSWorkspace.shared.icon(forFile: appURL.path)
-                appItem.image?.size = NSSize(width: 16, height: 16)
-                openWithMenu.addItem(appItem)
-            }
-            openWithItem.submenu = openWithMenu
-            menu.addItem(openWithItem)
+            menu.addItem(buildOpenWithSubmenu(for: url))
             menu.addItem(NSMenuItem.separator())
-        }
-
-        // 여러 파일 선택 시에도 "다음으로 열기" 제공
-        if urls.count > 1 {
+        } else if urls.count > 1 {
             let openWithItem = NSMenuItem(title: "다음으로 열기", action: nil, keyEquivalent: "")
             let openWithMenu = NSMenu(title: "Open With")
             let appURLs = NSWorkspace.shared.urlsForApplications(toOpen: urls[0])
@@ -336,29 +326,22 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
             menu.addItem(NSMenuItem.separator())
         }
 
-        // 쓰기 가능 여부 확인
-        let allWritable = urls.allSatisfy { url in
-            FileManager.default.isWritableFile(atPath: url.deletingLastPathComponent().path)
-        }
+        // 2. 편집 그룹 (복사/잘라내기/붙여넣기/이름변경/휴지통)
+        let allWritable = urls.allSatisfy { FileManager.default.isWritableFile(atPath: $0.deletingLastPathComponent().path) }
 
         menu.addItem(withTitle: "복사", action: #selector(copyAction), keyEquivalent: "").target = self
         let cutItem = NSMenuItem(title: "잘라내기", action: allWritable ? #selector(cutAction) : nil, keyEquivalent: "")
         cutItem.target = self
         cutItem.isEnabled = allWritable
         menu.addItem(cutItem)
-
         if !clipboardURLs.isEmpty {
             let pasteTitle = clipboardIsCut ? "여기에 이동" : "여기에 붙여넣기"
             menu.addItem(withTitle: pasteTitle, action: #selector(pasteAction), keyEquivalent: "").target = self
         }
-
-        menu.addItem(NSMenuItem.separator())
         let renameItem = NSMenuItem(title: "이름 변경", action: allWritable ? #selector(renameAction) : nil, keyEquivalent: "")
         renameItem.target = self
         renameItem.isEnabled = allWritable
         menu.addItem(renameItem)
-        menu.addItem(NSMenuItem.separator())
-
         let trashItem = NSMenuItem(title: "휴지통으로 이동", action: allWritable ? #selector(moveToTrashAction) : nil, keyEquivalent: "")
         trashItem.target = self
         trashItem.isEnabled = allWritable
@@ -366,19 +349,32 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
 
         menu.addItem(NSMenuItem.separator())
 
+        // 3. 유틸리티 그룹 (경로복사/터미널/Finder/압축/즐겨찾기)
         if urls.count == 1, let url = urls.first {
+            let isDir = (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
+
+            let pathItem = NSMenuItem(title: "경로 복사", action: #selector(contextCopyPath(_:)), keyEquivalent: "")
+            pathItem.target = self
+            pathItem.representedObject = url
+            menu.addItem(pathItem)
+
+            if isDir {
+                let termItem = NSMenuItem(title: "터미널에서 열기", action: #selector(contextOpenInTerminal(_:)), keyEquivalent: "")
+                termItem.target = self
+                termItem.representedObject = url
+                menu.addItem(termItem)
+            }
+
             let revealItem = NSMenuItem(title: "Finder에서 보기", action: #selector(contextRevealInFinder(_:)), keyEquivalent: "")
             revealItem.target = self
             revealItem.representedObject = url
             menu.addItem(revealItem)
 
-            let infoItem = NSMenuItem(title: "정보 가져오기", action: #selector(contextGetInfo(_:)), keyEquivalent: "")
-            infoItem.target = self
-            infoItem.representedObject = url
-            menu.addItem(infoItem)
+            let compressItem = NSMenuItem(title: "압축하기", action: #selector(contextCompress(_:)), keyEquivalent: "")
+            compressItem.target = self
+            compressItem.representedObject = urls
+            menu.addItem(compressItem)
 
-            // 폴더일 때 즐겨찾기 추가/제거
-            let isDir = (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
             if isDir {
                 menu.addItem(NSMenuItem.separator())
                 if FavoritesManager.shared.contains(url) {
@@ -393,17 +389,70 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
                     menu.addItem(addItem)
                 }
             }
+        } else {
+            // 여러 파일 선택
+            let pathItem = NSMenuItem(title: "경로 복사", action: #selector(contextCopyPaths(_:)), keyEquivalent: "")
+            pathItem.target = self
+            pathItem.representedObject = urls
+            menu.addItem(pathItem)
+
+            let compressItem = NSMenuItem(title: "압축하기", action: #selector(contextCompress(_:)), keyEquivalent: "")
+            compressItem.target = self
+            compressItem.representedObject = urls
+            menu.addItem(compressItem)
         }
 
         menu.addItem(NSMenuItem.separator())
-
-        // 압축하기
-        let compressItem = NSMenuItem(title: "압축하기", action: #selector(contextCompress(_:)), keyEquivalent: "")
-        compressItem.target = self
-        compressItem.representedObject = urls
-        menu.addItem(compressItem)
+        menu.addItem(withTitle: "새 폴더", action: #selector(newFolderAction), keyEquivalent: "").target = self
 
         return menu
+    }
+
+    private func buildOpenWithSubmenu(for url: URL) -> NSMenuItem {
+        let openWithItem = NSMenuItem(title: "다음으로 열기", action: nil, keyEquivalent: "")
+        let openWithMenu = NSMenu(title: "Open With")
+        let appURLs = NSWorkspace.shared.urlsForApplications(toOpen: url)
+        for appURL in appURLs.prefix(15) {
+            let appName = appURL.deletingPathExtension().lastPathComponent
+            let appItem = NSMenuItem(title: appName, action: #selector(contextOpenWith(_:)), keyEquivalent: "")
+            appItem.target = self
+            appItem.representedObject = ["file": url, "app": appURL]
+            appItem.image = NSWorkspace.shared.icon(forFile: appURL.path)
+            appItem.image?.size = NSSize(width: 16, height: 16)
+            openWithMenu.addItem(appItem)
+        }
+
+        let ext = url.pathExtension.lowercased()
+        if !ext.isEmpty {
+            openWithMenu.addItem(NSMenuItem.separator())
+            let currentDefault = PreferencesManager.shared.appURL(forExtension: ext)
+            for appURL in appURLs.prefix(15) {
+                let appName = appURL.deletingPathExtension().lastPathComponent
+                let isDefault = currentDefault == appURL
+                let setDefaultItem = NSMenuItem(
+                    title: isDefault ? "\(appName) (기본)" : "\(appName)을(를) 기본으로 설정",
+                    action: isDefault ? nil : #selector(contextSetDefaultApp(_:)),
+                    keyEquivalent: ""
+                )
+                setDefaultItem.target = self
+                setDefaultItem.representedObject = ["ext": ext, "app": appURL]
+                setDefaultItem.image = NSWorkspace.shared.icon(forFile: appURL.path)
+                setDefaultItem.image?.size = NSSize(width: 16, height: 16)
+                setDefaultItem.isEnabled = !isDefault
+                if isDefault { setDefaultItem.state = .on }
+                openWithMenu.addItem(setDefaultItem)
+            }
+            if currentDefault != nil {
+                openWithMenu.addItem(NSMenuItem.separator())
+                let clearItem = NSMenuItem(title: "기본 앱 해제", action: #selector(contextClearDefaultApp(_:)), keyEquivalent: "")
+                clearItem.target = self
+                clearItem.representedObject = ext
+                openWithMenu.addItem(clearItem)
+            }
+        }
+
+        openWithItem.submenu = openWithMenu
+        return openWithItem
     }
 
     // MARK: - Navigation
@@ -654,6 +703,57 @@ final class MainWindowController: NSWindowController, NSToolbarDelegate {
               let fileURLs = info["files"] as? [URL],
               let appURL = info["app"] as? URL else { return }
         NSWorkspace.shared.open(fileURLs, withApplicationAt: appURL, configuration: NSWorkspace.OpenConfiguration())
+    }
+
+    @objc private func newFileAction() {
+        guard let dir = currentURL else { return }
+        var fileName = "새 파일.txt"
+        var fileURL = dir.appendingPathComponent(fileName)
+        var counter = 2
+        while FileManager.default.fileExists(atPath: fileURL.path) {
+            fileName = "새 파일 \(counter).txt"
+            fileURL = dir.appendingPathComponent(fileName)
+            counter += 1
+        }
+        FileManager.default.createFile(atPath: fileURL.path, contents: nil)
+        refreshCurrentDirectory()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.fileListContainerVC.flashFiles(urls: [fileURL])
+            self?.fileListContainerVC.startRenaming()
+        }
+    }
+
+    @objc private func contextCopyPath(_ sender: NSMenuItem) {
+        guard let url = sender.representedObject as? URL else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(url.path, forType: .string)
+    }
+
+    @objc private func contextCopyPaths(_ sender: NSMenuItem) {
+        guard let urls = sender.representedObject as? [URL] else { return }
+        let paths = urls.map(\.path).joined(separator: "\n")
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(paths, forType: .string)
+    }
+
+    @objc private func contextOpenInTerminal(_ sender: NSMenuItem) {
+        guard let url = sender.representedObject as? URL else { return }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        process.arguments = ["-a", "Terminal", url.path]
+        try? process.run()
+    }
+
+    @objc private func contextSetDefaultApp(_ sender: NSMenuItem) {
+        guard let info = sender.representedObject as? [String: Any],
+              let ext = info["ext"] as? String,
+              let appURL = info["app"] as? URL else { return }
+        PreferencesManager.shared.setDefaultApp(appURL, forExtension: ext)
+    }
+
+    @objc private func contextClearDefaultApp(_ sender: NSMenuItem) {
+        guard let ext = sender.representedObject as? String else { return }
+        PreferencesManager.shared.removeDefaultApp(forExtension: ext)
     }
 
     @objc private func compressSelectedAction() {
